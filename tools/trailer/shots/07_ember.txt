@@ -1,0 +1,15 @@
+# Ember Art: a burning crescent through a squad.
+teleport 0.05 street:44
+do 0.06 clean
+do 0.06 invuln
+do 0.06 zoom 1.45
+do 0.06 ember
+do 0.07 clearfoes
+do 0.1 spawn swordsman 6
+do 0.1 spawn spearman 8
+do 0.1 spawn swordsman 10
+press art 0.9
+do 1.6 spark 100
+press art 2.0
+bot 2.4 5.5 aggressive
+quit 5.6

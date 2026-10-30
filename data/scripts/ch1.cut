@@ -1,0 +1,203 @@
+# SHADOW VEIL — Chapter I cutscenes
+# Commands: lock/unlock, letterbox <0|1> <secs>, fade <amount> <secs> [nowait], wait <secs>,
+#   say <SPEAKER> "<line>", narrate "<line>", title "<kanji>" "<text>" <secs>,
+#   camera <player|boss|npc:id|mech:id> <dxTiles> <dyTiles> <zoom> <secs> [nowait], camera_release,
+#   npc <id> show|hide|face|pose|walk <dx> <speed>|fade <alpha> <secs>, player pose|face|walk,
+#   sfx <name> [vol], music <mode|none>, shake, flash <amt> [hex], ripple <who> <amt>, slowmo <scale> <secs>,
+#   give <item>, flag <id>, ember, hint <id>, boss_start, open <link>, request <save|chapter_end>
+
+scene intro
+  lock
+  fade 1 0
+  letterbox 1 0
+  player pose kneel
+  player face right
+  music silent
+  camera player 2 -1 1.3 0
+  wait 1.0
+  narrate "For six hundred years the Kagenui clan has kept the Veil: the woven barrier in the mountain pass between Kurosaki and the Hollow."
+  narrate "Tonight is the Lantern Fair, when every window in Kurosaki is lit and the watch is thin."
+  fade 0 3.5 nowait
+  wait 1.5
+  sfx campbell 0.5
+  wait 2.5
+  camera player 3 -2 1.15 3 nowait
+  say REI "…"
+  sfx campbell 0.8
+  wait 0.4
+  sfx campbell 0.9
+  wait 0.4
+  sfx campbell 1.0
+  say REI "Three strokes. That isn't the fair bell. That's the alarm."
+  player pose stand
+  camera player 20 -3 0.8 4
+  shake 0.15
+  say REI "Kurosaki is burning."
+  wait 0.4
+  say REI "Master Odaka went up to the Old Gate at dusk. If they've come for the Anchor…"
+  camera player 3 -2 1.0 1.5
+  title "第一章" "Chapter I — The Ashen Grove" 4.5
+  letterbox 0 1.2
+  camera_release
+  music none
+  unlock
+  hint move
+  toast "Controls" "Pause, then How to Play, lists every button and technique."
+  request save
+end
+
+scene grove_talk
+  lock
+  letterbox 1 0.6
+  camera player 6 -2 1.1 1.5
+  say REI "The grove carries every sound. Stay low. Stay in the grass."
+  camera_release
+  letterbox 0 0.6
+  unlock
+  hint crouch
+end
+
+scene fuki_meet
+  lock
+  letterbox 1 0.8
+  player face right
+  camera npc:fuki -2 -1 1.2 1.6
+  say FUKI "Who's there? Speak, or I'll ring the alarm and the soldiers will take you instead of me."
+  say REI "It's Rei, grandmother."
+  say FUKI "Rei. You're alive. They came up from the shore with iron on their faces. Half the village ran for the grove. The other half…"
+  say REI "Where is Master Odaka?"
+  say FUKI "Gone up to the Old Gate. Alone. Before the first fire was lit, as if he knew it was coming."
+  say FUKI "Take this. My grandmother pulled it from the edge of the Veil, where the thread burns."
+  sfx ignite
+  flash 0.35 ff7a2a
+  ember
+  say FUKI "Feed it Sparks, the charge you build in battle, and it will burn for you."
+  hint ember
+  say FUKI "The old path climbs through the bamboo grove to the Bell Gate. That bell hangs out of reach of any blade. Remember it."
+  say FUKI "Rest a moment. The camp is still standing, even tonight."
+  camera_release
+  letterbox 0 0.8
+  unlock
+  hint camp
+  request save
+end
+
+scene fuki_talk
+  lock
+  letterbox 1 0.4
+  camera npc:fuki -2 -1 1.2 0.8
+  say FUKI "The camp can mend you, child. It cannot mend Kurosaki."
+  say FUKI "Odaka loved this village. Whatever he's doing up there, he believes he is saving it. That's what frightens me."
+  camera_release
+  letterbox 0 0.4
+  unlock
+end
+
+scene bell_rung
+  lock
+  letterbox 1 0.5
+  camera mech:bellgate 0 -2 1.0 1.2
+  sfx gate 0.8
+  wait 2.0
+  say REI "The old bell still rings true, even if the soldiers don't."
+  camera_release
+  letterbox 0 0.5
+  unlock
+end
+
+scene ravine_view
+  lock
+  letterbox 1 0.6
+  camera player 9 -2 0.85 2
+  say REI "The ravine. The old log bridge still stands upright on the far side of the rope."
+  camera_release
+  letterbox 0 0.6
+  unlock
+  hint rope
+end
+
+scene boss_intro
+  lock
+  letterbox 1 1.0
+  music silent
+  camera boss -4 -1 1.0 2.2
+  wait 0.4
+  say TETSU "So. The shadow-stitchers sent their last blade up the mountain."
+  say REI "Where is my master?"
+  say TETSU "Beyond my reach, and soon beyond yours."
+  say TETSU "Draw, girl. I have waited all night for someone worth losing to."
+  sfx perilous
+  shake 0.4
+  camera_release
+  letterbox 0 0.8
+  unlock
+  boss_start
+  hint posture
+end
+
+scene boss_phase2
+  lock
+  letterbox 1 0.4
+  camera boss 0 -1 1.15 0.6
+  say TETSU "Hah… there. THERE. That is what I climbed this mountain for."
+  sfx ignite
+  flash 0.4 ff6a20
+  shake 0.5
+  say TETSU "Now let me show you how iron burns."
+  camera_release
+  letterbox 0 0.4
+  unlock
+  hint perilous
+end
+
+scene boss_outro
+  lock
+  letterbox 1 1.0
+  music elegy
+  wait 1.6
+  camera boss 0 -1 1.3 2.5
+  say TETSU "Good. A clean cut. I had almost forgotten what one feels like."
+  say REI "Where is Odaka?"
+  say TETSU "You still call him master. Hah."
+  say TETSU "Who do you think opened the gate for us, girl? Who told Lord Hakuro which night the Veil runs thinnest?"
+  say REI "…No."
+  say TETSU "He wanted the Anchor more than we ever did. He said there was someone on the far side he meant to bring home."
+  flag boss_outro_done
+  wait 1.2
+  sfx gate 0.9
+  shake 0.7
+  ripple npc:odaka 1.0
+  flash 0.5 d8c8ff
+  camera npc:odaka -3 -1 0.9 2.5
+  npc odaka show
+  npc odaka fade 1 1.5
+  say ODAKA "Rei."
+  say ODAKA "Don't follow me. Not yet. When you understand what the Veil is woven from, you won't want to stop me."
+  npc odaka walk 3 70 nowait
+  npc odaka fade 0 2.2
+  say REI "Master!"
+  sfx dash
+  ripple player 1.0
+  flash 0.8 d8c8ff
+  fade 1 2.5
+  wait 0.5
+  request chapter_end
+end
+
+scene gale_awaken
+  lock
+  letterbox 1 0.5
+  slowmo 0.4 1.2
+  camera player 0 -1 1.3 1.0
+  sfx dash
+  ripple player 1.0
+  flash 0.4 9ff0e0
+  wait 0.6
+  say REI "The wind is with me. The first stitchers learned to move with it. So will I."
+  toast "Gale Stance awakened" "Swifter steps, and your finishing cuts loose wind blades."
+  hint gale
+  camera_release
+  letterbox 0 0.5
+  unlock
+  request save
+end

@@ -1,0 +1,62 @@
+name: Bug report
+description: Something crashes, misbehaves, or renders incorrectly.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search the existing issues before filing a report.
+        For exploitable problems, use the private advisory link on the previous page instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected, and what the game did instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a new game
+        2. Enter the ravine and grapple the first beam
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The release tag, or the output of `git describe --always --dirty`.
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: Distribution, kernel, session type (Wayland or X11), GPU and driver.
+      placeholder: Arch Linux, 6.17, Wayland, AMD Renoir / Mesa 25.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Input device
+      options:
+        - Keyboard and mouse
+        - PlayStation controller
+        - Xbox controller
+        - Other controller
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots (F12 saves one), the room name, or a save file if progression is involved.

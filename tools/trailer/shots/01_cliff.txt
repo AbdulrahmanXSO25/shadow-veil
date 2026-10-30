@@ -1,0 +1,9 @@
+# Cold open: Rei resting at the cliff camp under the moon; slow pull-back.
+teleport 0.05 ch1.cliff.player.0
+do 0.06 clean
+do 0.06 lock
+do 0.06 pose kneel
+do 0.06 face right
+do 0.07 cam 0.3 -0.2 2.6 0
+do 0.6 cam 4.5 -3.2 0.9 8.4
+quit 9.2

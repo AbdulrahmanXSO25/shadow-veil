@@ -1,0 +1,40 @@
+# Build output
+/build/
+/build-*/
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+Makefile
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.exe
+*.pdb
+*.ilk
+
+# Local tooling and caches
+/.cache/
+/.clangd/
+/.ccache/
+/.tmp/
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local artifacts
+# Local media exports are not kept in the repository.
+/dist/*.mp4
+/smoke.png

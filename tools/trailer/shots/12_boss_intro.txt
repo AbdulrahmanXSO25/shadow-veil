@@ -1,0 +1,5 @@
+# Tetsu at the Old Gate (dialogue on).
+do 0.06 quiet
+teleport 0.05 oldgate:6
+hold right 0.3 0.9
+quit 21

@@ -1,0 +1,11 @@
+# The duel with the Iron Ronin: deathblow, the flame phase.
+do 0.06 quiet
+teleport 0.05 ch1.oldgate.boss.0
+do 0.06 invuln
+do 0.06 zoom 1.35
+do 0.06 ember
+do 0.06 gale
+do 0.1 boss
+bot 0.4 20 aggressive
+do 4.0 break
+quit 20

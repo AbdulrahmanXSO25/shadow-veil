@@ -1,0 +1,10 @@
+# Two deathblows, the dying words, the revelation, the Veil tears.
+do 0.06 quiet
+teleport 0.05 ch1.oldgate.boss.0
+do 0.06 invuln
+do 0.06 zoom 1.3
+do 0.1 boss
+bot 0.4 13 aggressive
+do 1.0 break
+do 9.0 break
+quit 50

@@ -1,0 +1,15 @@
+# Menus & systems montage, from the title screen.
+do 0.1 gale
+do 0.1 ember
+do 0.1 skill blade_fourth
+do 0.1 skill blade_iron
+do 0.1 skill veil_second
+do 0.1 skill aura_rising
+do 0.1 skill shadow_soft
+do 0.1 equip blade hollow_moon
+do 0.1 equip mask fox_mask
+do 4.5 screen equipment
+do 6.3 screen skills
+do 8.1 screen howto
+do 9.9 screen achievements
+quit 11.5

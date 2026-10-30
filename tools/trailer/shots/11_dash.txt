@@ -1,0 +1,8 @@
+# Veil-Step across the stake pit.
+teleport 0.05 cliff:46
+do 0.06 clean
+do 0.06 zoom 1.5
+hold right 0.3 3.0
+press jump 0.62
+press dash 0.88
+quit 3.0

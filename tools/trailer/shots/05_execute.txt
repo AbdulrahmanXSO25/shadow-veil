@@ -1,0 +1,10 @@
+# Posture breaks; the execution.
+teleport 0.05 edge:30
+do 0.06 clean
+do 0.06 invuln
+do 0.06 zoom 1.9
+do 0.07 clearfoes
+do 0.1 spawn spearman 3 left tough
+bot 0.3 4.5
+do 1.6 break
+quit 4.6

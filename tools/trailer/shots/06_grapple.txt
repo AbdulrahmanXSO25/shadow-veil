@@ -1,0 +1,10 @@
+# Veil-Thread: swinging across the burning rooftops.
+teleport 0.05 roofs:27
+do 0.06 clean
+do 0.06 invuln
+do 0.06 zoom 1.2
+do 0.07 clearfoes
+hold right 0.4 4.5
+press jump 1.2
+hold grapple 1.35 2.35
+quit 4.6

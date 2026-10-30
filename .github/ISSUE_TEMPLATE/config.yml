@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/AbdulrahmanXSO25/shadow-veil/security/advisories/new
+    about: Report a vulnerability privately. Please do not open a public issue.
+  - name: Design bible and roadmap
+    url: https://github.com/AbdulrahmanXSO25/shadow-veil/tree/main/docs
+    about: What is built, what is planned, and how the game is designed.

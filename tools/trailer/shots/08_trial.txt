@@ -1,0 +1,13 @@
+# The Wind Trial: Gale Stance, wind blades, Kage Rank climbing.
+do 0.06 quiet
+teleport 0.05 ch1.ravine.trial.0
+do 0.06 invuln
+do 0.06 zoom 1.45
+do 0.06 gale
+do 0.06 skill aura_rising
+do 0.06 skill aura_eye
+do 0.06 ember
+do 0.07 clearfoes
+do 0.3 trial
+bot 0.6 9.5 aggressive
+quit 9.6

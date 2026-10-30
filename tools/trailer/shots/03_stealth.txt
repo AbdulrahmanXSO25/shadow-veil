@@ -1,0 +1,11 @@
+# Stealth: crouched through tall grass, an assassination from behind.
+teleport 0.05 grove:5
+do 0.06 clean
+do 0.07 clearfoes
+do 0.08 spawnidle swordsman 9 right
+do 0.08 cam 4 -1.0 1.75 0
+do 0.5 cam 7 -1.0 1.95 3.2
+hold down 0.4 3.15
+hold right 0.6 3.05
+press attack 3.2
+quit 5.6

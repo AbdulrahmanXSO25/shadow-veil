@@ -1,0 +1,11 @@
+# The village burns: Rei sprints down the street, vaults, veil-steps.
+teleport 0.05 street:2
+do 0.06 clean
+do 0.06 invuln
+do 0.06 zoom 1.35
+do 0.07 clearfoes
+hold right 0.5 7.5
+press jump 2.6
+press dash 3.2
+press jump 5.0
+quit 7.6

@@ -1,0 +1,6 @@
+# Puzzle: the bell beyond any blade — a thrown star raises the gate.
+teleport 0.05 bellgate:9
+do 0.06 clean
+do 0.06 face right
+press shuriken 0.8
+quit 6.5

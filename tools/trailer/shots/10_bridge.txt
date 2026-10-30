@@ -1,0 +1,9 @@
+# Puzzle: cut the rope, the log bridge falls across the ravine.
+teleport 0.05 ravine:15
+do 0.06 clean
+do 0.06 face right
+do 0.07 cam 6 -3 0.95 0
+press attack 0.6
+do 2.6 camfree
+hold right 2.8 5.2
+quit 5.3

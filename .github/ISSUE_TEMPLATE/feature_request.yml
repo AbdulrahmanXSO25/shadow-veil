@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a mechanic, a quality-of-life change, or content.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The campaign and its mechanics are planned in [`docs/ROADMAP.md`](../../docs/ROADMAP.md) and
+        [`docs/DESIGN_BIBLE.md`](../../docs/DESIGN_BIBLE.md). Please check those before proposing new content.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: The situation in the game that is awkward, unclear, or missing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you would like to see happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways the same problem could be addressed, and why they are weaker.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Combat
+        - Traversal
+        - Stealth
+        - Progression
+        - Presentation
+        - Accessibility
+        - Performance
+        - Tooling and tests

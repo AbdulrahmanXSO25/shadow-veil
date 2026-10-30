@@ -1,0 +1,11 @@
+# The duel: deflections ring out against two swordsmen.
+teleport 0.05 street:30
+do 0.06 clean
+do 0.06 invuln
+do 0.07 clearfoes
+do 0.06 zoom 1.75
+do 0.1 spawn swordsman 3 left tough
+do 0.1 spawn spearman -4 right tough
+do 3.5 spawn swordsman 5 left tough
+bot 0.3 7.5
+quit 7.6
