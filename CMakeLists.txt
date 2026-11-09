@@ -21,6 +21,10 @@ endif()
 option(SV_BUNDLED_DEPS "Build pinned SDL3, FreeType and zlib from source" ${_sv_bundle_default})
 option(SV_BUILD_TOOLS "Build the test runner and trailer tools" ON)
 
+# MSVC: static C/C++ runtime for every target (game, tools and fetched libraries alike), so the
+# .exe needs no VC++ redistributable and nothing mixes /MT with /MD.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 if(SV_BUNDLED_DEPS)
   include(FetchContent)
   set(FETCHCONTENT_QUIET ON)
@@ -132,9 +136,6 @@ if(WIN32)
   if(MINGW)
     # one self-contained .exe: no libstdc++ / libgcc / winpthread DLLs to ship
     target_link_options(shadow_veil PRIVATE -static -static-libgcc -static-libstdc++)
-  endif()
-  if(MSVC)
-    set_property(TARGET shadow_veil sv_engine PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   endif()
 elseif(SV_RELEASE)
   target_link_options(shadow_veil PRIVATE -static-libgcc -static-libstdc++)
