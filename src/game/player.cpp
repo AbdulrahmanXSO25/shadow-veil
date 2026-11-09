@@ -115,10 +115,22 @@ void World::updatePlayer(float dt) {
     p.wallJumpLock = std::max(0.f, p.wallJumpLock - dt);
     p.hurtFlash = std::max(0.f, p.hurtFlash - dt * 4);
     p.landT = std::max(0.f, p.landT - dt);
+    p.strokeCd = std::max(0.f, p.strokeCd - dt);
+    p.snared = std::max(0.f, p.snared - dt);
     prompt.clear();
 
     const bool locked = controlLocked;
     float mx = locked ? 0 : in.moveX();
+    if (p.snared > 0) {
+        // bound by a Hollow thread: struggle (mash Attack/Jump) to tear free
+        mx *= 0.2f;
+        if (!locked && (in.pressed(Act::Attack) || in.pressed(Act::Jump) || in.pressed(Act::Dash))) {
+            p.snared -= 0.3f;
+            in.consume(Act::Attack); in.consume(Act::Jump); in.consume(Act::Dash);
+            emit(PType::Thread, p.pos + Vec2{0, -50}, 6, 200, palette.thread, 2, 0.3f);
+            if (p.snared <= 0) sfx(Sfx::Slash, p.pos, 0.6f, 1.5f);
+        }
+    }
     auto pressed = [&](Act a) { return !locked && in.pressed(a); };
     auto held = [&](Act a) { return !locked && in.held(a); };
     auto buffered = [&](Act a, float w) { return !locked && in.buffered(a, w); };
@@ -190,7 +202,8 @@ void World::updatePlayer(float dt) {
         float bd = 80;
         for (auto& m : mechs) {
             bool usable = (m.kind == MechKind::Chest && !m.active) || (m.kind == MechKind::Scroll && !m.active) || m.kind == MechKind::Shrine ||
-                          m.kind == MechKind::Examine || m.kind == MechKind::Npc || (m.kind == MechKind::Trial && !m.active && !trialActive);
+                          m.kind == MechKind::Examine || m.kind == MechKind::Npc || (m.kind == MechKind::Trial && !m.active && !trialActive) ||
+                          (m.kind == MechKind::Sluice && !m.active);
             if (!usable) continue;
             float d = std::abs(m.pos.x - p.pos.x);
             if (d < bd && std::abs(m.pos.y - p.pos.y) < 60) { bd = d; near = &m; }
@@ -203,6 +216,7 @@ void World::updatePlayer(float dt) {
             case MechKind::Shrine: verb = "Rest"; break;
             case MechKind::Npc: verb = "Talk"; break;
             case MechKind::Trial: verb = "Begin Trial"; break;
+            case MechKind::Sluice: verb = "Turn the wheel"; break;
             default: break;
             }
             prompt = std::string("{Interact}  ") + verb;
@@ -265,10 +279,16 @@ void World::updatePlayer(float dt) {
         setState(p, PState::Dash);
         p.vel = {p.facing * tune::DASH_SPEED, 0};
         p.dashCd = tune::DASH_CD - stats.dashCooldown - (hasGale() ? 0.08f : 0.f);
-        p.iframes = std::max(p.iframes, tune::DASH_TIME + 0.03f);
+        p.iframes = std::max(p.iframes, tune::DASH_TIME + 0.03f + (save->skills.count("veil_mantle") ? 0.05f : 0.f));
         sfx(Sfx::Dash, p.pos, 0.8f);
         ripple = 0.6f; rippleAt = p.pos + Vec2{0, -40};
         emit(PType::Thread, p.pos + Vec2{0, -40}, 10, 120, rgb(0xd8c8ff), 2, 0.5f);
+        if (hasStance("mirror")) {
+            // Mirror Step: the place you left keeps your shape a moment longer
+            decoyPos = p.pos; decoyT = 1.6f;
+        }
+        // in the Mirror Province the step crosses between the Bright and the Hollow
+        if (level.rooms[curRoom].layers && save->has("mirror_thread")) tryFlipLayer();
         return true;
     };
     auto tryJump = [&]() {
@@ -280,6 +300,27 @@ void World::updatePlayer(float dt) {
             bool oneway = false;
             for (int x = tx0; x <= tx1; x++) if (level.at(x, ty) == Tile::OneWay) oneway = true;
             if (oneway) { in.consume(Act::Jump); p.pos.y += 4; p.onGround = false; setState(p, PState::Air); return true; }
+        }
+        if (p.inWater) {
+            if (!p.headUnder) {
+                // kick out of the water
+                in.consume(Act::Jump);
+                p.vel.y = -tune::JUMP_V * 0.82f;
+                setState(p, PState::Air);
+                sfx(Sfx::Jump, p.pos, 0.6f, 0.8f);
+                emit(PType::Splash, p.pos + Vec2{0, -40}, 16, 300, palette.water * 2.4f, 4, 0.6f, 1.2f, -PI / 2);
+                return true;
+            }
+            if (p.strokeCd <= 0) {
+                // a swimming stroke upward
+                in.consume(Act::Jump);
+                p.vel.y = std::min(p.vel.y, -430.f);
+                p.strokeCd = 0.28f;
+                sfx(Sfx::Swoosh, p.pos, 0.35f, 0.6f);
+                emit(PType::Splash, p.pos + Vec2{0, -20}, 6, 90, palette.water * 2.6f, 3, 0.5f);
+                return true;
+            }
+            return false;
         }
         if (p.coyote > 0) {
             in.consume(Act::Jump);
@@ -371,8 +412,15 @@ void World::updatePlayer(float dt) {
                 save->flags.insert(m.spawnId);
                 sfx(Sfx::Pickup, m.pos, 1.0f, 0.8f);
                 if (!m.item.empty()) {
-                    save->add(m.item);
                     const ItemDef* d = findItem(m.item);
+                    if (d && d->slot != ItemSlot::Material && d->slot != ItemSlot::Gem && save->count(m.item) > 0) {
+                        // already carried (a replayed chapter or New Game+): the chest holds coin instead
+                        save->mon += 150;
+                        event(WorldEvent::Toast, "150 mon", d->name + " is already yours");
+                        emit(PType::Ember, m.pos + Vec2{0, -30}, 20, 220, rgb(0xffd27a), 3, 0.8f);
+                        break;
+                    }
+                    save->add(m.item);
                     event(WorldEvent::Toast, d ? d->name : m.item, d ? std::string(slotName(d->slot)) + " acquired" : "");
                     if (m.item == "hollow_moon") achieve("hollow_moon");
                     if (m.item == "fox_mask") achieve("fox_mask");
@@ -386,20 +434,31 @@ void World::updatePlayer(float dt) {
                 sfx(Sfx::Pickup, m.pos, 0.8f, 1.1f);
                 event(WorldEvent::Lore, m.item);
                 {
-                    int found = 0;
-                    for (auto& l : loreDefs()) if (save->has("lore:" + l.id)) found++;
-                    if (found >= (int)loreDefs().size()) achieve("all_scrolls_c1");
+                    int ch = chapterOf(save->level).number, found = 0, foundAll = 0;
+                    for (auto& l : loreDefs()) {
+                        if (!save->has("lore:" + l.id)) continue;
+                        foundAll++;
+                        if (l.chapter == ch) found++;
+                    }
+                    if (found >= loreCountForChapter(ch)) achieve("all_scrolls_c" + std::to_string(ch));
+                    if (foundAll >= (int)loreDefs().size()) { achieve("all_scrolls"); save->flags.insert("all_scrolls"); }
                 }
                 break;
             case MechKind::Shrine:
                 save->checkpoint = m.spawnId;
                 if (!m.active) { m.active = true; save->flags.insert("shrine:" + m.spawnId); }
-                sfx(Sfx::ShrineBell, m.pos, 0.9f);
+                sfx(Sfx::CampRest, m.pos, 0.9f);
                 event(WorldEvent::ShrineMenu, m.name);
                 break;
             case MechKind::Examine: event(WorldEvent::Dialogue, "REI", m.text); break;
             case MechKind::Npc: event(WorldEvent::Cutscene, m.text); break;
             case MechKind::Trial: startTrial(m); break;
+            case MechKind::Sluice:
+                m.active = true;
+                sfx(Sfx::Gate, m.pos, 0.9f, 1.2f);
+                shake(0.2f);
+                activateLink(m.link);
+                break;
             default: break;
             }
             break;
@@ -421,6 +480,7 @@ void World::updatePlayer(float dt) {
         // horizontal movement
         p.crouch = p.onGround && held(Act::Down);
         float maxSpeed = p.crouch ? (save->skills.count("shadow_soft") ? tune::CROUCH_SOFT : tune::CROUCH) : tune::RUN * (hasGale() ? 1.12f : 1.f);
+        if (p.inWater) maxSpeed *= 0.55f;
         float target = mx * maxSpeed;
         if (p.wallJumpLock > 0) target = p.vel.x;
         float accel = p.onGround ? (std::abs(target) > std::abs(p.vel.x) ? tune::ACCEL : tune::DECEL) : tune::AIR_ACCEL;
@@ -430,7 +490,7 @@ void World::updatePlayer(float dt) {
         if (p.vel.y < 0 && !held(Act::Jump) && p.state == PState::Air) p.vel.y = std::max(p.vel.y, -tune::JUMP_V * 0.45f);
         if (std::abs(p.vel.y) < 140 && held(Act::Jump) && !p.onGround) gravScale = 0.55f;
         // wall slide detection
-        if (!p.onGround) {
+        if (!p.onGround && !p.inWater) {
             int dir = mx > 0.3f ? 1 : (mx < -0.3f ? -1 : 0);
             bool touching = dir != 0 && rectSolid(Rect{p.pos.x - p.w / 2 + dir * 3, p.pos.y - p.h + 10, p.w, p.h - 30});
             if (touching && p.vel.y > -100) {
@@ -441,6 +501,8 @@ void World::updatePlayer(float dt) {
                 if (g_fxRngSeedTick(time)) emit(PType::Dust, p.pos + Vec2{dir * 14.f, -40}, 1, 40, palette.fog.withA(0.4f), 6, 0.4f);
             } else if (p.state == PState::WallSlide) setState(p, PState::Air);
             else if (p.state == PState::Ground) setState(p, PState::Air);
+        } else if (p.inWater && !p.onGround) {
+            if (p.state != PState::Air) setState(p, PState::Air);
         } else if (p.state != PState::Ground) {
             setState(p, PState::Ground);
         }
@@ -478,7 +540,8 @@ void World::updatePlayer(float dt) {
         if (t >= sw.windup && t - dt < sw.windup) {
             sfx(p.combo == 2 && !air ? Sfx::SlashHeavy : Sfx::Slash, p.pos, 0.85f, 1.0f + p.combo * 0.04f);
             // the Gale Stance looses a wind blade on finishing cuts
-            if (hasGale() && ((!air && p.combo >= 2) || (air && save->skills.count("aura_rising")))) spawnGaleBlade(air ? 0.8f : 1.f);
+            bool storm = save->skills.count("aura_storm") && styleRank >= 3 && !air && p.combo >= 1;
+            if (hasGale() && ((!air && p.combo >= 2) || storm || (air && save->skills.count("aura_rising")))) spawnGaleBlade(air ? 0.8f : 1.f);
         }
         if (t >= sw.windup && t < sw.windup + sw.active) playerAttackBoxes();
         float total = sw.windup + sw.active + sw.recover;
@@ -580,8 +643,10 @@ void World::updatePlayer(float dt) {
             shake(0.7f);
             input->rumble(1.0f, 0.8f, 260);
             emit(PType::Spark, e->pos + Vec2{0, -50}, 30, 900, rgb(0xfff2c0), 3, 0.5f);
+            Vec2 boltFrom = e->pos;
             killEnemy(p.target, true, false);
             gainKi(20);
+            if (hasStance("thunder")) thunderStrike(boltFrom);
             if (stats.executeHeal > 0) p.hp = std::min(maxHpOf(*save), p.hp + stats.executeHeal);
             save->bump("executions");
             if (save->counter("executions") == 1) achieve("first_execution");
@@ -605,6 +670,7 @@ void World::updatePlayer(float dt) {
             save->bump("stealthKills");
             if (save->counter("stealthKills") == 1) achieve("stealth_kill");
             if (save->skills.count("shadow_drop")) { gainKi(30); p.hp = std::min(maxHpOf(*save), p.hp + 8); }
+            if (save->skills.count("shadow_breath")) save->shuriken = std::min(save->maxShuriken(), save->shuriken + 2);
         }
         if (p.stateT > 0.7f) { p.target = -1; setState(p, p.onGround ? PState::Ground : PState::Air); }
         break;
@@ -618,6 +684,34 @@ void World::updatePlayer(float dt) {
     if (locked && (p.state == PState::Ground || p.state == PState::Air)) p.vel.x = approach(p.vel.x, 0, tune::DECEL * dt);
 
     // ---------------------------------------------------------- physics
+    // water and rising wind
+    {
+        int bx = (int)std::floor(p.pos.x / TILE);
+        bool wasIn = p.inWater;
+        p.inWater = level.waterAt(bx, (int)std::floor((p.pos.y - 30) / TILE));
+        p.headUnder = level.waterAt(bx, (int)std::floor((p.pos.y - 78) / TILE));
+        if (p.inWater && !wasIn && p.vel.y > 200) {
+            sfx(Sfx::Land, p.pos, 0.7f, 0.6f);
+            emit(PType::Splash, p.pos + Vec2{0, -30}, (int)(10 + p.vel.y / 60), 380, palette.water * 2.4f, 4, 0.7f, 1.3f, -PI / 2);
+        }
+        if (p.inWater && p.state != PState::Grapple && p.state != PState::Dash) {
+            gravScale *= 0.3f;
+            p.vel.y = std::min(p.vel.y, held(Act::Down) ? 320.f : 170.f);
+            p.vel.x *= 1 - std::min(1.f, 2.5f * dt);
+            if (p.headUnder && !held(Act::Down) && p.vel.y > -60) p.vel.y = approach(p.vel.y, -120, 600 * dt);   // gentle buoyancy
+            p.airDashes = std::max(p.airDashes, 1);
+        }
+        bool up = level.updraftAt(bx, (int)std::floor((p.pos.y - 40) / TILE));
+        if (up && !p.inUpdraft) sfx(Sfx::Swoosh, p.pos, 0.6f, 0.7f);
+        p.inUpdraft = up;
+        if (up && p.state != PState::Grapple && p.state != PState::Dash) {
+            float want = held(Act::Down) ? 140.f : -620.f;
+            p.vel.y = approach(p.vel.y, want, 3600 * dt);
+            gravScale = 0;
+            p.airDashes = save->skills.count("veil_second") ? 2 : 1;
+            if (p.onGround && !held(Act::Down)) { p.onGround = false; p.pos.y -= 2; if (p.state == PState::Ground) setState(p, PState::Air); }
+        }
+    }
     if (p.state != PState::Grapple) p.vel.y = std::min(tune::MAX_FALL, p.vel.y + tune::GRAVITY * gravScale * dt);
     float h = p.crouch ? 58.f : 82.f;
     if (!p.crouch && p.h < 82 && rectSolid(Rect{p.pos.x - p.w / 2, p.pos.y - 82, p.w, 82})) { h = p.h; p.crouch = true; }
@@ -648,7 +742,13 @@ void World::updatePlayer(float dt) {
     // stealth: tall grass and noise
     int gx = (int)std::floor(p.pos.x / TILE), gy = (int)std::floor((p.pos.y - 10) / TILE);
     p.inGrass = level.grassAt(gx, gy);
-    p.hidden = p.inGrass && p.crouch;
+    // Shadow Stance: stillness in a crouch becomes a cloak
+    if (hasStance("shadow") && p.crouch && p.onGround && std::abs(p.vel.x) < 20 && p.state == PState::Ground) p.stillT += dt;
+    else p.stillT = 0;
+    bool wasCloaked = p.cloaked;
+    p.cloaked = p.stillT > (save->skills.count("shadow_breath") ? 0.4f : 0.8f);
+    if (p.cloaked && !wasCloaked) { sfx(Sfx::Swoosh, p.pos, 0.4f, 0.5f); emit(PType::Smoke, p.pos + Vec2{0, -30}, 14, 60, rgb(0x101018, 0.6f), 18, 0.9f); }
+    p.hidden = (p.inGrass && p.crouch) || p.headUnder || p.cloaked;
     p.noise = (p.onGround && std::abs(p.vel.x) > 200 && !p.crouch) ? 1.f : (p.state == PState::Attack ? 1.f : 0.f);
 
     for (auto& ai : p.afterimages) ai.life -= dt;
@@ -681,7 +781,8 @@ void World::playerAttackBoxes() {
         if (!e.alive() || !e.box().overlaps(box)) continue;
         if (std::find(p.swingHits.begin(), p.swingHits.end(), (int)i) != p.swingHits.end()) continue;
         p.swingHits.push_back((int)i);
-        AttackInfo a; a.damage = stats.attack * dmgMul; a.posture = sw.posture; a.origin = p.pos; a.ember = emberProc;
+        float atk = stats.attack + (save->skills.count("blade_tide") && p.hp < maxHpOf(*save) * 0.4f ? 10.f : 0.f);
+        AttackInfo a; a.damage = atk * dmgMul; a.posture = sw.posture; a.origin = p.pos; a.ember = emberProc;
         if (emberProc) { a.damage *= 1.25f; emit(PType::Ember, e.pos + Vec2{0, -50}, 16, 300, rgb(0xff8a3a), 5, 0.5f); }
         hitEnemy((int)i, a);
     }
@@ -705,7 +806,7 @@ void World::playerAttackBoxes() {
         }
         if (m.kind == MechKind::Bell && !m.active) {
             Rect r{m.pos.x - 28, m.pos.y - 10, 56, 70};
-            if (r.overlaps(box)) { m.swingVel = p.facing * 4; sfx(Sfx::Bell, m.pos, 0.6f, 1.0f); event(WorldEvent::Hint, "bell"); }
+            if (r.overlaps(box)) { m.swingVel = p.facing * 4; sfx(Sfx::Catch, m.pos, 0.6f, 1.0f); event(WorldEvent::Hint, "bell"); }
         }
     }
 }

@@ -72,9 +72,173 @@ static Palette makeGate() {
     return p;
 }
 
+// ---- Chapter II: rain over the drowned terraces
+static Palette makeRain() {
+    Palette p;
+    p.sky.top = rgb(0x0a1416); p.sky.mid = rgb(0x1d3438); p.sky.horizon = rgb(0x4c6a66);
+    p.sky.horizonY = 0.8f; p.sky.moonPos = {0.3f, 0.2f}; p.sky.moonRadius = 0.05f;
+    p.sky.moon = rgb(0xcfe0dc) * 0.5f; p.sky.moonVeil = 0.9f; p.sky.stars = 0.0f; p.sky.cloud = rgb(0x203234, 0.9f);
+    p.fog = rgb(0x3a5552); p.far = rgb(0x2a4442); p.mid = rgb(0x172a2a); p.nearC = rgb(0x0a1514);
+    p.ground = rgb(0x050b0b); p.grass = rgb(0x0e1d1a); p.rim = rgb(0x9fd6c8);
+    p.glow = rgb(0xffb45a); p.glowAmt = 0.25f;
+    p.post.lift = {0.0f, 0.012f, 0.014f}; p.post.gain = {0.92f, 1.0f, 1.0f}; p.post.saturation = 0.8f;
+    p.post.bloom = 0.55f; p.post.vignette = 0.48f;
+    p.rain = 1.0f; p.mist = 0.8f; p.leaves = 0.15f; p.wind = {-30, 0};
+    p.water = rgb(0x163a3c);
+    return p;
+}
+static Palette makeFlood() {
+    Palette p = makeRain();
+    p.sky.top = rgb(0x050c0e); p.sky.mid = rgb(0x0f2226); p.sky.horizon = rgb(0x2b4a4a);
+    p.fog = rgb(0x24403e); p.far = rgb(0x18302f); p.mid = rgb(0x0e1e1e); p.nearC = rgb(0x060f0f);
+    p.rim = rgb(0xffc47a); p.glow = rgb(0xffa040); p.glowAmt = 0.55f;
+    p.post.gain = {1.0f, 0.98f, 0.94f}; p.post.saturation = 0.9f; p.post.bloom = 0.75f;
+    p.rain = 0.45f; p.mist = 1.0f; p.fireflies = 0.3f;
+    p.water = rgb(0x0f3034);
+    return p;
+}
+static Palette makeTide() {
+    Palette p = makeRain();
+    p.sky.top = rgb(0x0b0f12); p.sky.mid = rgb(0x262f33); p.sky.horizon = rgb(0x5d6a66);
+    p.sky.moonRadius = 0.0f; p.sky.cloud = rgb(0x2a3236, 0.95f);
+    p.fog = rgb(0x46524f); p.far = rgb(0x2f3a39); p.mid = rgb(0x1a2222); p.nearC = rgb(0x0b1010);
+    p.rim = rgb(0xc8e8e0); p.glowAmt = 0.1f;
+    p.post.saturation = 0.7f; p.post.vignette = 0.55f; p.post.bloom = 0.6f;
+    p.rain = 1.6f; p.mist = 0.6f; p.wind = {-80, 0};
+    return p;
+}
+// ---- Chapter III: autumn on the pass
+static Palette makeMaple() {
+    Palette p;
+    p.sky.top = rgb(0x1a0c14); p.sky.mid = rgb(0x5a2420); p.sky.horizon = rgb(0xe08a3c);
+    p.sky.horizonY = 0.78f; p.sky.moonPos = {0.72f, 0.62f}; p.sky.moonRadius = 0.09f;
+    p.sky.moon = rgb(0xffd090) * 1.0f; p.sky.moonVeil = 0.4f; p.sky.stars = 0.0f; p.sky.cloud = rgb(0x4a1c1c, 0.6f);
+    p.fog = rgb(0x8a4a30); p.far = rgb(0x5c2c22); p.mid = rgb(0x351612); p.nearC = rgb(0x140806);
+    p.ground = rgb(0x0a0403); p.grass = rgb(0x2a0f08); p.rim = rgb(0xffb070);
+    p.glow = rgb(0xff8a3a); p.glowAmt = 0.3f;
+    p.post.lift = {0.02f, 0.008f, 0.0f}; p.post.gain = {1.08f, 0.98f, 0.88f}; p.post.saturation = 1.08f;
+    p.post.bloom = 0.8f; p.post.vignette = 0.42f;
+    p.leaves = 0.6f; p.petals = 0.9f; p.mist = 0.35f; p.wind = {60, 0};
+    return p;
+}
+static Palette makeRidge() {
+    Palette p = makeMaple();
+    p.sky.top = rgb(0x24142a); p.sky.mid = rgb(0x6a3a3a); p.sky.horizon = rgb(0xf0b060);
+    p.sky.moonPos = {0.25f, 0.55f}; p.sky.moonRadius = 0.11f; p.sky.moon = rgb(0xfff0c0);
+    p.fog = rgb(0xa06a48); p.far = rgb(0x6e4234); p.mid = rgb(0x3e2018); p.nearC = rgb(0x160a07);
+    p.rim = rgb(0xffd090); p.post.bloom = 0.9f;
+    p.petals = 0.5f; p.leaves = 0.4f; p.mist = 0.5f; p.wind = {90, -10};
+    return p;
+}
+static Palette makeCrow() {
+    Palette p = makeMaple();
+    p.sky.top = rgb(0x0c0814); p.sky.mid = rgb(0x2e1428); p.sky.horizon = rgb(0x9a3a30);
+    p.sky.moonPos = {0.5f, 0.3f}; p.sky.moonRadius = 0.12f; p.sky.moon = rgb(0xffa070) * 0.9f; p.sky.stars = 0.3f;
+    p.fog = rgb(0x5a2a2c); p.far = rgb(0x3a1a22); p.mid = rgb(0x220c12); p.nearC = rgb(0x0d0408);
+    p.rim = rgb(0xff9a70); p.glowAmt = 0.2f;
+    p.post.saturation = 0.95f; p.post.vignette = 0.52f;
+    p.petals = 0.7f; p.leaves = 0.2f; p.wind = {120, 0};
+    return p;
+}
+// ---- Chapter IV: snow on Castle Hakuro
+static Palette makeSnow() {
+    Palette p;
+    p.sky.top = rgb(0x05080f); p.sky.mid = rgb(0x18243a); p.sky.horizon = rgb(0x52647c);
+    p.sky.horizonY = 0.8f; p.sky.moonPos = {0.66f, 0.2f}; p.sky.moonRadius = 0.07f;
+    p.sky.moon = rgb(0xeef4ff) * 0.95f; p.sky.moonVeil = 0.35f; p.sky.stars = 0.5f; p.sky.cloud = rgb(0x1c2638, 0.7f);
+    p.fog = rgb(0x4a5a74); p.far = rgb(0x34425a); p.mid = rgb(0x1c2436); p.nearC = rgb(0x0a0e18);
+    p.ground = rgb(0x06080e); p.grass = rgb(0x121826); p.rim = rgb(0xcfe0ff);
+    p.glow = rgb(0xffb060); p.glowAmt = 0.2f;
+    p.post.lift = {0.01f, 0.014f, 0.03f}; p.post.gain = {0.94f, 1.0f, 1.1f}; p.post.saturation = 0.75f;
+    p.post.bloom = 0.6f; p.post.vignette = 0.45f;
+    p.snow = 1.0f; p.mist = 0.5f; p.wind = {50, 0};
+    return p;
+}
+static Palette makeCourt() {
+    Palette p = makeSnow();
+    p.fog = rgb(0x5a5464); p.far = rgb(0x3c3848); p.mid = rgb(0x221e2c); p.nearC = rgb(0x0e0c14);
+    p.rim = rgb(0xffd6a0); p.glow = rgb(0xffa040); p.glowAmt = 0.6f;
+    p.post.gain = {1.04f, 0.98f, 0.98f}; p.post.saturation = 0.85f; p.post.bloom = 0.75f;
+    p.snow = 0.7f;
+    return p;
+}
+static Palette makeWolf() {
+    Palette p = makeSnow();
+    p.sky.top = rgb(0x0e0e14); p.sky.mid = rgb(0x30303c); p.sky.horizon = rgb(0x8a8a98);
+    p.sky.moonPos = {0.5f, 0.22f}; p.sky.moonRadius = 0.14f; p.sky.moon = rgb(0xffffff); p.sky.cloud = rgb(0x2a2a34, 0.85f);
+    p.fog = rgb(0x70707e); p.far = rgb(0x4a4a58); p.mid = rgb(0x2a2a34); p.nearC = rgb(0x0e0e14);
+    p.rim = rgb(0xffffff); p.glow = rgb(0xff3a2a); p.glowAmt = 0.2f;
+    p.post.saturation = 0.55f; p.post.vignette = 0.58f; p.post.bloom = 0.7f;
+    p.snow = 2.0f; p.wind = {160, 10};
+    return p;
+}
+// ---- Chapter V: the Mirror Province, where the ink runs white
+static Palette makeMirror() {
+    Palette p;
+    p.sky.top = rgb(0x120a2a); p.sky.mid = rgb(0x3a2a6a); p.sky.horizon = rgb(0xb8a0e8);
+    p.sky.horizonY = 0.74f; p.sky.moonPos = {0.5f, 0.82f}; p.sky.moonRadius = 0.16f;
+    p.sky.moon = rgb(0xfff0c8); p.sky.moonVeil = 0.2f; p.sky.stars = 1.0f; p.sky.cloud = rgb(0x5a4a8a, 0.4f);
+    p.fog = rgb(0x9a8cc8); p.far = rgb(0x7a6eaa); p.mid = rgb(0x4a4078); p.nearC = rgb(0x2a2448);
+    p.ground = rgb(0x14102a); p.grass = rgb(0x2a2250); p.rim = rgb(0xffe2a8);
+    p.glow = rgb(0xffd27a); p.glowAmt = 0.3f;
+    p.post.lift = {0.01f, 0.0f, 0.03f}; p.post.gain = {1.0f, 0.98f, 1.04f}; p.post.saturation = 0.95f;
+    p.post.bloom = 0.7f; p.post.vignette = 0.4f;
+    p.threads = 1.0f; p.mist = 0.4f; p.wind = {20, -10};
+    return p;
+}
+static Palette makeHollowP() {
+    Palette p;
+    p.sky.top = rgb(0x02010a); p.sky.mid = rgb(0x0c0820); p.sky.horizon = rgb(0x2a1a4a);
+    p.sky.horizonY = 0.78f; p.sky.moonPos = {0.5f, 0.82f}; p.sky.moonRadius = 0.16f;
+    p.sky.moon = rgb(0x9a7ad8) * 0.8f; p.sky.moonVeil = 0.5f; p.sky.stars = 0.4f; p.sky.cloud = rgb(0x120a24, 0.6f);
+    p.fog = rgb(0x221640); p.far = rgb(0x18102e); p.mid = rgb(0x0e081c); p.nearC = rgb(0x06040e);
+    p.ground = rgb(0x040208); p.grass = rgb(0x120a22); p.rim = rgb(0xb48aff);
+    p.glow = rgb(0xffc860); p.glowAmt = 0.4f;
+    p.post.lift = {0.01f, 0.0f, 0.04f}; p.post.gain = {0.95f, 0.92f, 1.12f}; p.post.saturation = 0.9f;
+    p.post.bloom = 0.8f; p.post.vignette = 0.55f;
+    p.threads = 1.4f; p.mist = 0.6f; p.wind = {-20, 0};
+    return p;
+}
+// ---- Chapter VI: the heart of the Veil
+static Palette makeLoom() {
+    Palette p;
+    p.sky.top = rgb(0x0a0410); p.sky.mid = rgb(0x2a0e2a); p.sky.horizon = rgb(0x8a4a3a);
+    p.sky.horizonY = 0.7f; p.sky.moonPos = {0.5f, 0.4f}; p.sky.moonRadius = 0.2f;
+    p.sky.moon = rgb(0xffd890) * 0.9f; p.sky.moonVeil = 0.6f; p.sky.stars = 0.6f; p.sky.cloud = rgb(0x2a0c22, 0.6f);
+    p.fog = rgb(0x5a2a3a); p.far = rgb(0x3a1a2a); p.mid = rgb(0x22101a); p.nearC = rgb(0x0e050a);
+    p.ground = rgb(0x070206); p.grass = rgb(0x1a0a12); p.rim = rgb(0xffcf80);
+    p.glow = rgb(0xffb050); p.glowAmt = 0.5f;
+    p.post.lift = {0.02f, 0.005f, 0.01f}; p.post.gain = {1.06f, 0.98f, 0.94f}; p.post.saturation = 1.0f;
+    p.post.bloom = 0.9f; p.post.vignette = 0.5f;
+    p.threads = 1.6f; p.embers = 0.3f; p.mist = 0.4f; p.wind = {30, -20};
+    return p;
+}
+static Palette makeUnravel() {
+    Palette p = makeLoom();
+    p.sky.top = rgb(0x140806); p.sky.mid = rgb(0x5a2a10); p.sky.horizon = rgb(0xffc070);
+    p.fog = rgb(0x8a5a3a); p.far = rgb(0x5a3422); p.mid = rgb(0x301810); p.nearC = rgb(0x100604);
+    p.rim = rgb(0xfff0c0); p.glowAmt = 0.9f; p.post.bloom = 1.0f;
+    p.threads = 2.4f; p.embers = 0.8f; p.wind = {200, -40};
+    return p;
+}
+static Palette makeHeart() {
+    Palette p = makeLoom();
+    p.sky.top = rgb(0x050208); p.sky.mid = rgb(0x1a0a24); p.sky.horizon = rgb(0x6a3a6a);
+    p.sky.moonPos = {0.5f, 0.32f}; p.sky.moonRadius = 0.24f; p.sky.moon = rgb(0xfff4d0);
+    p.fog = rgb(0x4a2a4a); p.far = rgb(0x2e1a30); p.mid = rgb(0x1a0e1e); p.nearC = rgb(0x0a040c);
+    p.rim = rgb(0xffe0a0); p.post.vignette = 0.6f;
+    p.threads = 2.0f; p.embers = 0.0f; p.wind = {0, -30};
+    return p;
+}
+
 const Palette& paletteByName(const std::string& name) {
     static const std::map<std::string, Palette> table = {
-        {"moon", makeMoon()}, {"ember", makeEmber()}, {"grove", makeGrove()}, {"ravine", makeRavine()}, {"gate", makeGate()}};
+        {"moon", makeMoon()}, {"ember", makeEmber()}, {"grove", makeGrove()}, {"ravine", makeRavine()}, {"gate", makeGate()},
+        {"rain", makeRain()}, {"flood", makeFlood()}, {"tide", makeTide()},
+        {"maple", makeMaple()}, {"ridge", makeRidge()}, {"crow", makeCrow()},
+        {"snow", makeSnow()}, {"court", makeCourt()}, {"wolf", makeWolf()},
+        {"mirror", makeMirror()}, {"hollow", makeHollowP()},
+        {"loom", makeLoom()}, {"unravel", makeUnravel()}, {"heart", makeHeart()}};
     auto it = table.find(name);
     if (it == table.end()) { logWarn("unknown palette '%s'", name.c_str()); return table.at("moon"); }
     return it->second;
@@ -85,6 +249,11 @@ BgStyle styleByName(const std::string& n) {
     if (n == "grove") return BgStyle::Grove;
     if (n == "ravine") return BgStyle::Ravine;
     if (n == "gate") return BgStyle::Gate;
+    if (n == "terrace") return BgStyle::Terrace;
+    if (n == "maple") return BgStyle::Maple;
+    if (n == "castle") return BgStyle::Castle;
+    if (n == "mirror") return BgStyle::Mirror;
+    if (n == "loom") return BgStyle::Loom;
     return BgStyle::Cliff;
 }
 
@@ -113,6 +282,8 @@ Palette lerp(const Palette& a, const Palette& b, float t) {
     o.post = lerp(a.post, b.post, t);
     o.embers = lerp(a.embers, b.embers, t); o.ash = lerp(a.ash, b.ash, t); o.fireflies = lerp(a.fireflies, b.fireflies, t);
     o.leaves = lerp(a.leaves, b.leaves, t); o.petals = lerp(a.petals, b.petals, t); o.mist = lerp(a.mist, b.mist, t);
+    o.rain = lerp(a.rain, b.rain, t); o.snow = lerp(a.snow, b.snow, t); o.threads = lerp(a.threads, b.threads, t);
+    o.water = lerp(a.water, b.water, t); o.thread = lerp(a.thread, b.thread, t);
     o.wind = lerp(a.wind, b.wind, t);
     return o;
 }
@@ -159,6 +330,15 @@ static const char* spawnKindForChar(char c) {
     case '*': return "shuriken";
     case 'o': return "bead";
     case 'm': return "material";
+    case 'v': return "reaver";
+    case 'q': return "lurker";
+    case 'k': return "duelist";
+    case 'j': return "crow";
+    case 'n': return "hound";
+    case 'g': return "gunner";
+    case 'e': return "hollow";
+    case 'z': return "snare";
+    case 'K': return "sentinel";
     default: return nullptr;
     }
 }
@@ -207,6 +387,10 @@ bool parseLevel(const std::string& text, Level& L, std::string& err) {
             if (p.count("crickets")) r.crickets = std::stof(p["crickets"]);
             if (p.count("boss")) r.bossArena = true;
             if (p.count("stealth")) r.stealthZone = true;
+            if (p.count("layers")) r.layers = true;
+            if (p.count("palette2")) r.palette2 = p["palette2"];
+            if (p.count("rain")) r.rain = std::stof(p["rain"]);
+            if (p.count("water")) r.water = std::stof(p["water"]);
             r.seed = (int)hash32((uint32_t)std::hash<std::string>{}(r.id));
         }
         else if (cmd == "map") { if (!cur) { err = strfmt("line %zu: map outside room", li + 1); return false; } inMap = true; }
@@ -235,6 +419,7 @@ bool parseLevel(const std::string& text, Level& L, std::string& err) {
     L.width = total;
     L.tiles.assign(L.width * L.height, Tile::Empty);
     L.grass.assign(L.width * L.height, 0);
+    L.updraft.assign(L.width * L.height, 0);
     std::map<std::string, int> counters;
     auto makeId = [&](const std::string& room, const std::string& kind) {
         int n = counters[room + kind]++;
@@ -258,6 +443,11 @@ bool parseLevel(const std::string& text, Level& L, std::string& err) {
                 case 'B': t = Tile::Breakable; break;
                 case 'W': t = Tile::Wall; break;
                 case 'h': L.grass[y * L.width + gx] = 1; break;
+                case '~': t = Tile::Water; break;
+                case '|': L.updraft[y * L.width + gx] = 1; break;
+                case 'c': t = Tile::Crumble; break;
+                case 'a': t = Tile::Bright; L.hasLayers = true; break;
+                case 'b': t = Tile::Hollow; L.hasLayers = true; break;
                 case 'L': case 'l': case 'f': {
                     Prop p; p.kind = c == 'L' ? "lantern" : (c == 'l' ? "hanging_lantern" : "fire");
                     p.pos = {gx * TILE, (y + 1) * TILE}; p.room = (int)ri; p.seed = gx * 131 + y;
@@ -271,6 +461,7 @@ bool parseLevel(const std::string& text, Level& L, std::string& err) {
                         s.id = makeId(room.id, kind);
                         if (s.kind == "anchor") s.pos.y = (y + 0.5f) * TILE;
                         L.spawns.push_back(s);
+                        if (c == 'q') t = Tile::Water;   // lurkers wait under the surface
                     }
                     break;
                 }

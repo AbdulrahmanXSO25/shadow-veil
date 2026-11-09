@@ -5,7 +5,10 @@
 #include "core/util.h"
 #include "game/game.h"
 #include "game/director.h"
+#include "platform/platform.h"
+#include "game/progression.h"
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>   // provides WinMain on Windows
 #include <cstring>
 #include <map>
 
@@ -75,6 +78,7 @@ void printHelp() {
         "  --size WxH              window size (default 1600x900)\n"
         "  --play                  skip the title screen (continue or new game)\n"
         "  --fresh                 ignore the existing save (with --play)\n"
+        "  --chapter <n>           begin in chapter n (1-6)\n"
         "  --start <room|spawn>    begin at a room id or spawn id (with --play)\n"
         "  --autoplay <file>       drive input from a script (testing)\n"
         "  --user-dir <dir>        use a different save/settings directory\n"
@@ -82,10 +86,19 @@ void printHelp() {
         "  --stats                 print frame timing every 5 seconds\n"
         "  --render-size WxH       render at a fixed internal resolution\n"
         "  --record <file.mp4>     capture an autoplay run to video (needs --render-size, writes <file>.f32 audio)\n"
+        "  --export-achievements <file.csv>  write the achievement list for the store and exit\n"
         "  --no-music              mute the score (sound effects and ambience remain)\n", SV_VERSION);
 }
 
 } // namespace
+
+// A fatal start-up problem: log it and tell the player in a dialog (release builds have no console).
+static int fatal(SDL_Window* win, const std::string& what) {
+    logError("%s", what.c_str());
+    std::string msg = what + "\n\nA log was written to:\n" + userDir() + "/shadow-veil.log";
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Shadow Veil", msg.c_str(), win);
+    return 1;
+}
 
 int main(int argc, char** argv) {
     GameOptions opt;
@@ -103,6 +116,7 @@ int main(int argc, char** argv) {
         else if (a == "--size") { auto s = split(next(), 'x'); if (s.size() == 2) { winW = std::stoi(s[0]); winH = std::stoi(s[1]); } }
         else if (a == "--play") opt.skipTitle = true;
         else if (a == "--fresh") opt.freshSave = true;
+        else if (a == "--chapter") { opt.chapter = std::atoi(next().c_str()); opt.skipTitle = true; }
         else if (a == "--start") { opt.startAt = next(); opt.skipTitle = true; }
         else if (a == "--autoplay") { autoplayPath = next(); opt.autoCutscenes = true; }
         else if (a == "--user-dir") setUserDirOverride(next());
@@ -110,22 +124,37 @@ int main(int argc, char** argv) {
         else if (a == "--stats") stats = true;
         else if (a == "--record") recordPath = next();
         else if (a == "--no-music") noMusic = true;
+        else if (a == "--export-achievements") {
+            // CSV for the Steamworks achievement page: api name, display name, description, hidden
+            std::string out = next(), csv = "api_name,display_name,description,hidden\n";
+            auto q = [](const std::string& s) { std::string r = "\""; for (char c : s) { if (c == '"') r += '"'; r += c; } return r + "\""; };
+            for (auto& d : achievementDefs()) csv += d.id + "," + q(d.name) + "," + q(d.desc) + "," + (d.hidden ? "1" : "0") + "\n";
+            if (!writeFileAtomic(out, csv)) { logError("cannot write %s", out.c_str()); return 1; }
+            std::printf("%zu achievements -> %s\n", achievementDefs().size(), out.c_str());
+            return 0;
+        }
         else if (a == "--render-size") { auto s = split(next(), 'x'); if (s.size() == 2) { renderW = std::stoi(s[0]); renderH = std::stoi(s[1]); } }
         else { logWarn("unknown argument %s", a.c_str()); }
     }
 
+#if defined(__linux__) || defined(__FreeBSD__)
+    // native Wayland first, X11 as the fallback (other platforms use SDL's default driver)
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, preferX11 ? "x11,wayland" : "wayland,x11");
-    SDL_SetHint(SDL_HINT_APP_ID, "shadow-veil");
+#else
+    (void)preferX11;
+#endif
+    SDL_SetHint(SDL_HINT_APP_ID, "dev.shadowveil.game");   // matches the .desktop file, so docks show the icon
     SDL_SetAppMetadata("Shadow Veil", SV_VERSION, "dev.shadowveil.game");
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) { logError("SDL_Init: %s", SDL_GetError()); return 1; }
+    if (!platform::init()) return 0;   // the store relaunched us
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) return fatal(nullptr, strfmt("Could not start the video system: %s", SDL_GetError()));
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_Window* win = SDL_CreateWindow("Shadow Veil", winW, winH, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-    if (!win) { logError("window: %s", SDL_GetError()); return 1; }
+    if (!win) return fatal(nullptr, strfmt("Could not open the game window: %s\n\nShadow Veil needs a graphics card with OpenGL 3.3. Please install the latest driver from your GPU vendor (AMD, NVIDIA or Intel).", SDL_GetError()));
     SDL_GLContext ctx = SDL_GL_CreateContext(win);
-    if (!ctx) { logError("GL context: %s", SDL_GetError()); return 1; }
+    if (!ctx) return fatal(win, strfmt("Could not create an OpenGL 3.3 context: %s\n\nShadow Veil needs a graphics card with OpenGL 3.3. Please install the latest driver from your GPU vendor (AMD, NVIDIA or Intel).", SDL_GetError()));
     SDL_GL_MakeCurrent(win, ctx);
     SDL_GL_SetSwapInterval(1);
     logInfo("video driver: %s | GL %s | %s", SDL_GetCurrentVideoDriver(), (const char*)glGetString(GL_VERSION), (const char*)glGetString(GL_RENDERER));
@@ -134,7 +163,7 @@ int main(int argc, char** argv) {
     int pw, ph;
     SDL_GetWindowSizeInPixels(win, &pw, &ph);
     Renderer renderer;
-    if (!renderer.init(pw, ph)) { logError("renderer init failed"); return 1; }
+    if (!renderer.init(pw, ph)) return fatal(win, strfmt("Your graphics driver does not support OpenGL 3.3 (it reports \"%s\").\n\nPlease install the latest driver from your GPU vendor (AMD, NVIDIA or Intel). Remote desktops and virtual machines often lack 3D support.", (const char*)glGetString(GL_RENDERER)));
     if (renderW > 0) renderer.setFixedResolution(renderW, renderH);
     Audio audio;
     // Recording renders audio offline in lockstep with frames; live play uses the device.
@@ -159,7 +188,8 @@ int main(int argc, char** argv) {
     if (!autoplayPath.empty() && !autoplay.load(autoplayPath)) return 1;
 
     Game game;
-    if (!game.init(&renderer, &audio, &input, win, opt)) { logError("game init failed"); return 1; }
+    if (!game.init(&renderer, &audio, &input, win, opt)) return fatal(win, "The game data could not be loaded. Please reinstall Shadow Veil (the data and assets folders must sit next to the program).");
+    platform::syncAchievements(game.profile().achievements);
     if (fullscreen) { game.settings().fullscreen = true; }
     if (noMusic) game.setMusicVolume(0);
 
@@ -173,6 +203,7 @@ int main(int argc, char** argv) {
     bool running = true;
     while (running && !game.quitRequested()) {
         SDL_Event e;
+        platform::tick();
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) { running = false; logInfo("quit requested by the window system"); }
             else if (e.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) renderer.resize(e.window.data1, e.window.data2);
@@ -255,6 +286,7 @@ int main(int argc, char** argv) {
     renderer.shutdown();
     SDL_GL_DestroyContext(ctx);
     SDL_DestroyWindow(win);
+    platform::shutdown();
     SDL_Quit();
     return 0;
 }

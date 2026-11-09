@@ -20,10 +20,8 @@ bool Director::parseLine(const std::vector<std::string>& t) {
 }
 
 static EType typeByName(const std::string& n) {
-    if (n == "spearman") return EType::Spearman;
-    if (n == "archer") return EType::Archer;
     if (n == "boss") return EType::Tetsugen;
-    return EType::Swordsman;
+    return etypeByName(n, nullptr);
 }
 
 void Director::run(Game& game, const std::vector<std::string>& a) {

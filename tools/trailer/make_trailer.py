@@ -30,7 +30,7 @@ SEGS = [
     dict(kind='clip', clip='06_grapple', a=0.9, b=3.7, cap=('糸', 'Ride the Veil-Thread', 'Swing above the burning rooftops.')),
     dict(kind='clip', clip='11_dash', a=0.3, b=2.5, cap=('影', 'Step through the Veil', 'Untouchable, for one heartbeat.')),
     dict(kind='clip', clip='07_ember', a=0.6, b=4.4, cap=('炎', 'Wield the Ember Art', 'Sparks earned in battle, loosed as fire.')),
-    dict(kind='clip', clip='09_bell', a=0.6, b=4.6, cap=('鈴', 'Read the old ways', 'Puzzles, secrets and forgotten paths.')),
+    dict(kind='clip', clip='09_bell', a=0.6, b=4.6, cap=('錘', 'Read the old ways', 'Puzzles, secrets and forgotten paths.')),
     dict(kind='clip', clip='10_bridge', a=0.4, b=3.2),
     dict(kind='clip', clip='08_trial', a=0.6, b=7.0, fout=0.25, cap=('風', 'Awaken the Gale', 'Trials, stances, and the Kage Rank.')),
     dict(kind='clip', clip='12_boss_intro', a=8.1, b=11.2, fin=0.25),

@@ -1,0 +1,149 @@
+# SHADOW VEIL — Chapter VI: The Heart of the Veil (final chapter)
+
+scene intro
+  lock
+  fade 1 0
+  letterbox 1 0
+  player face right
+  player pose stand
+  music silent
+  camera player 3 -2 1.2 0
+  wait 0.8
+  narrate "Rei walked across the still mere, and the mere became thread, and the thread became a road into the Veil itself."
+  narrate "Inside, there is no sky. There is only the weave: a loom the size of a mountain, and the hum of a song held on one note for twenty years."
+  fade 0 3.0 nowait
+  wait 1.6
+  camera player 12 -4 0.85 4 nowait
+  say REI "She's in here somewhere. Holding all of it."
+  say REI "And he's in here with her."
+  camera player 3 -2 1.0 1.5
+  title "終章" "Final Chapter — The Heart of the Veil" 4.5
+  letterbox 0 1.2
+  camera_release
+  unlock
+  request save
+end
+
+scene unravel_start
+  lock
+  letterbox 1 0.4
+  shake 0.8
+  camera player 6 -1 0.9 0.6
+  say REI "He's started cutting."
+  say SAYO "Rei — run! The weave is falling behind you!"
+  camera_release
+  letterbox 0 0.4
+  unlock
+  chase 330
+  hint chase
+end
+
+scene quiet
+  lock
+  letterbox 1 0.8
+  camera player 4 -1 1.15 2
+  wait 0.6
+  say SAYO "You're here. You're really here."
+  say REI "I can hear you, but I can't see you."
+  say SAYO "I'm just past the next door. I haven't moved from this place in twenty years. I couldn't, or the weave would have torn."
+  say SAYO "Rest a moment, my daughter. He is waiting for you, and he won't wait gently."
+  camera_release
+  letterbox 0 0.8
+  unlock
+  request save
+end
+
+scene boss_intro
+  lock
+  letterbox 1 1.0
+  music silent
+  camera boss -4 -1 1.0 2.2
+  wait 0.4
+  say ODAKA "I told you to stay at the camp."
+  say REI "You told me a lot of things. You never told me she was my mother."
+  say ODAKA "Would you have let me bring her out, if you'd known what it costs?"
+  say ODAKA "Twenty years she has held this weave, alone, so that the world on both sides could sleep. Twenty years I have trained the only blade that could help me finish it."
+  say REI "Help you tear it apart."
+  say ODAKA "Help me bring my sister home. Stand aside, Rei. Or show me I taught you well."
+  sfx perilous
+  shake 0.5
+  camera_release
+  letterbox 0 0.8
+  unlock
+  boss_start
+end
+
+scene boss_phase2
+  lock
+  letterbox 1 0.4
+  camera boss 0 -1 1.1 0.6
+  say ODAKA "Good. Again. You have never once beaten me in the practice yard."
+  say REI "This isn't the practice yard."
+  flash 0.4 ffd890
+  camera_release
+  letterbox 0 0.4
+  unlock
+end
+
+scene boss_phase3
+  lock
+  letterbox 1 0.4
+  camera boss 0 -1 1.15 0.6
+  shake 0.6
+  say ODAKA "Then let the whole weave come down on us both!"
+  flash 0.5 ffd890
+  camera_release
+  letterbox 0 0.4
+  unlock
+end
+
+scene boss_outro
+  lock
+  letterbox 1 1.0
+  music elegy
+  wait 1.4
+  camera boss 0 -1 1.3 2.2
+  say ODAKA "…There. You've beaten me. Strike, and it is done."
+  say REI "No. I didn't come here to finish anyone. Not Funaki, not Karasu, not Hakuro. Not you."
+  say ODAKA "Then what did you come for?"
+  say REI "To ask her what she wants. Nobody ever has."
+  wait 0.8
+  npc sayo fade 1 2.0
+  camera npc:sayo -2 -1 1.2 2.4
+  wait 1.2
+  say SAYO "Rei."
+  say REI "…Mother."
+  say SAYO "You have your father's frown. And my brother's stubbornness, I see."
+  say ODAKA "Sayo. I came to bring you home."
+  say SAYO "I know, little brother. You were always going to come. I only hoped she would come with you, and not behind you."
+  say SAYO "Listen to me, both of you. The Veil can't be held by one pair of hands forever. Mine are tired. It must change."
+  say SAYO "Rei. You hold the needle now. You decide what the weave becomes."
+  choice ending "What will Rei do with the weave?" "Reweave it whole" "Unravel it gently" "Restitch it into a door@all_scrolls"
+  goto_if ending_3 restitch
+  goto_if ending_2 unravel
+  label reweave
+  say REI "I'll mend what he cut. The Veil holds. But you won't hold it alone anymore."
+  say SAYO "Then come to the mirror shore at every new moon, and I'll sing to you through the glass."
+  narrate "Rei mended every thread Odaka had cut, and the Veil closed whole again."
+  narrate "Sayo remained at the loom. But at every new moon, a Kagenui and an old man in a straw cloak sat on the shore of the still mere, and they listened, and they were not alone."
+  goto epilogue
+  label unravel
+  say REI "No more walls. But not all at once, and not with a blade. One thread at a time, so both sides can see each other coming."
+  say SAYO "Then I'll let go slowly. Hold my hand while I do."
+  narrate "Over one winter, the Veil came down thread by thread. The exiles walked out into the daylight, and the valleys of the Hollow saw strangers for the first time in six hundred years."
+  narrate "It was not always peaceful. Rei kept her blade near. But Sayo came home in the spring, as she had promised the ferryman, twenty years late."
+  goto epilogue
+  label restitch
+  say REI "Not a wall, and not nothing. A door. Woven so it opens from both sides, and held by many hands instead of one."
+  say SAYO "…The old scrolls spoke of that. No one has ever done it."
+  say REI "No one has ever had Karasu, Kagami and Hana on their side."
+  narrate "Rei restitched the Veil into a weave with doors in it, and gave each door a keeper: an exile and a Kagenui together, at every crossing."
+  narrate "Sayo came home in the spring. The ferryman rowed her across himself, and wept the whole way, and claimed it was the wind."
+  label epilogue
+  wait 0.6
+  narrate "And in Minase, the rice came up green again on a hundred and sixty steps of water."
+  wait 0.8
+  fade 1 3.0
+  wait 0.6
+  request chapter_end
+end

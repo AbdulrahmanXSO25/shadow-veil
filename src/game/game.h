@@ -15,13 +15,14 @@ class Renderer;
 extern const char* const kSlotRows[7];
 std::vector<std::string> candidates(const SaveData& s, int row);
 
-enum class Screen { HowTo, Title, Playing, Pause, Equipment, Skills, Collection, Achievements, Settings, Shrine, Forge, Lore, Death, ChapterEnd, Credits, Confirm };
+enum class Screen { HowTo, Title, Playing, Pause, Equipment, Skills, Collection, Achievements, Settings, Shrine, Forge, Lore, Death, ChapterEnd, Credits, Confirm, Chapters };
 
 struct GameOptions {
     bool skipTitle = false;         // jump straight into play (testing)
     std::string startAt;            // spawn id or room id to start at
     bool autoCutscenes = false;     // auto-advance dialogue
     bool freshSave = false;         // ignore any save on disk
+    int chapter = 0;                // 1-based chapter to start in (testing)
 };
 
 class Game {
@@ -76,6 +77,9 @@ private:
     void tickCredits(float dt);
     void tickHowTo(float dt);
     void tickConfirm(float dt);
+    void tickChapters(float dt);
+    void finishChapter();
+    void startChapter(const ChapterDef& c, bool replay);
 
     // drawing (game_ui.cpp)
     void drawHUD();
@@ -96,6 +100,7 @@ private:
     void drawCredits();
     void drawHowTo();
     void drawConfirm();
+    void drawChapters();
     void drawToasts();
     void drawHint();
     void drawRoomCard();
@@ -150,6 +155,11 @@ private:
     bool m_clean = false, m_quiet = false;
     float m_musicOverride = -1;
     std::string m_pendingGrade;
+    // what the chapter-end page shows, captured before the save moves on to the next chapter
+    struct EndCard { int number = 1; std::string title, numeral, nextTitle; bool final = false; int ending = 0;
+                     std::vector<std::pair<std::string, std::string>> rows; ChapterResult res; int prevBest = 0; std::string prevGrade; };
+    EndCard m_end;
+    std::string m_titleSub;   // chapter the save is in, shown under the logo
 };
 
 } // namespace sv

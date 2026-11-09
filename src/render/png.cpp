@@ -1,4 +1,5 @@
 #include "render/png.h"
+#include "core/util.h"
 #include <zlib.h>
 #include <vector>
 #include <fstream>
@@ -20,7 +21,7 @@ static void chunk(std::ofstream& f, const char* type, const std::vector<uint8_t>
 }
 
 bool writePNG(const std::string& path, int w, int h, const uint8_t* rgba) {
-    std::ofstream f(path, std::ios::binary);
+    std::ofstream f(u8path(path), std::ios::binary);
     if (!f) return false;
     const uint8_t sig[8] = {137, 80, 78, 71, 13, 10, 26, 10};
     f.write((const char*)sig, 8);

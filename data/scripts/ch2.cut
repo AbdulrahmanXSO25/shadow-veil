@@ -1,0 +1,176 @@
+# SHADOW VEIL — Chapter II: The Drowned Terrace
+# Same command set as ch1.cut, plus: flood <drainId>, spawn <foe> <dx>, boss_leave, choice, goto/goto_if/label.
+
+scene intro
+  lock
+  fade 1 0
+  letterbox 1 0
+  player face right
+  player pose stand
+  music silent
+  camera player 3 -2 1.2 0
+  wait 0.8
+  narrate "Odaka went over the pass and down into the river country. Rei followed his tracks until the rain washed them away."
+  narrate "Below the pass lie the rice terraces of Minase: a hundred and sixty steps of water and green, feeding three valleys."
+  fade 0 3.0 nowait
+  wait 1.6
+  camera player 14 -1 0.85 4 nowait
+  say REI "…The terraces are drowning."
+  say REI "Every sluice on the river is shut. That isn't the rain. Someone did this on purpose."
+  camera player 3 -2 1.0 1.5
+  title "第二章" "Chapter II — The Drowned Terrace" 4.5
+  letterbox 0 1.2
+  camera_release
+  unlock
+  toast "New ground" "Water slows you and hides you. Jump at the surface to climb out."
+  request save
+end
+
+scene sluice_view
+  lock
+  letterbox 1 0.6
+  camera player 14 -4 0.85 2
+  say REI "A reservoir, held back by a floodgate. The way on runs underneath it."
+  say REI "Floodgates on this river open from above. There will be a wheel."
+  camera_release
+  letterbox 0 0.6
+  unlock
+end
+
+scene opened_ch2.sluice_gate
+  lock
+  letterbox 1 0.5
+  camera player 10 0 0.9 1.2
+  shake 0.4
+  wait 1.6
+  say REI "There. Let the river have its water back."
+  camera_release
+  letterbox 0 0.5
+  unlock
+  request save
+end
+
+scene hana_meet
+  lock
+  letterbox 1 0.8
+  camera npc:hana -3 -1 1.15 2
+  npc hana face left
+  say HANA "Rei? Rei! You came down the mountain? Of course you did. You never listen."
+  say REI "Hana. Is your grandmother—"
+  say HANA "She's safe at the cliff camp. She sent me down to warn Minase. I was a day too late."
+  say HANA "A river captain called Funaki closed the sluices. Half the village climbed onto the roofs. The other half he took."
+  say REI "Took where?"
+  say HANA "Up the river. To Castle Hakuro. Anyone who can carry stone."
+  say HANA "He's at the Great Sluice now, past the reed channel. If someone opened it, the water would go down by morning."
+  say REI "Then someone will."
+  say HANA "Rest first. You look like the river already had you once."
+  camera_release
+  letterbox 0 0.8
+  unlock
+  request save
+end
+
+scene hana_talk
+  say HANA "Go. The little ones keep asking when they can get down off the roof."
+  say HANA "If you see Funaki, tell him the Minase children have names. He never asked a single one."
+end
+
+scene refugee_talk
+  say EXILE "We had nowhere to go but up. When the roofs go under, there is nowhere at all."
+  say EXILE "Hana gave her rice to the children. Tell her to eat, if she will listen to you."
+end
+
+scene boat_passes
+  lock
+  letterbox 1 0.8
+  music silent
+  camera player 12 -2 0.9 2.5
+  wait 0.6
+  say REI "A boat. Soldiers at the oars… and captives in chains."
+  say REI "…Hana."
+  narrate "She had gone with the children. She did not look back at the bank, so that the soldiers would not look there either."
+  say REI "She left me her ribbon. And a note."
+  say REI "Funaki first. Then the castle."
+  camera_release
+  letterbox 0 0.8
+  music none
+  unlock
+end
+
+scene boss_intro
+  lock
+  letterbox 1 1.0
+  music silent
+  camera boss -4 -1 1.0 2.2
+  wait 0.4
+  say FUNAKI "A Kagenui. In my water. Lord Hakuro said the shadow-stitchers were finished."
+  say REI "You flooded Minase. Open the sluice."
+  say FUNAKI "A flooded valley hides no rebels and feeds no army. It is only water, girl. It goes down eventually."
+  say REI "The people on the roofs may not."
+  say FUNAKI "Then come and take the wheel from me."
+  sfx perilous
+  shake 0.4
+  camera_release
+  letterbox 0 0.8
+  unlock
+  boss_start
+  hint tidewave
+end
+
+scene boss_phase2
+  lock
+  letterbox 1 0.4
+  camera boss 0 -1 1.1 0.6
+  say FUNAKI "Hah. Enough. Let the river finish this."
+  sfx gate
+  shake 0.6
+  flood ch2.arena_flood
+  wait 1.0
+  say FUNAKI "Swim, stitcher."
+  camera_release
+  letterbox 0 0.4
+  unlock
+  hint flooded
+end
+
+scene boss_outro
+  lock
+  letterbox 1 1.0
+  music elegy
+  wait 1.4
+  camera boss 0 -1 1.3 2.2
+  say FUNAKI "…Finish it, then."
+  say REI "No."
+  say FUNAKI "You put a blade to my throat and take it away again? That is not how this works."
+  say REI "It is now. Open the sluice. Then tell me where the boat is taking them."
+  wait 0.6
+  say FUNAKI "…The castle. Hakuro is building a road over the pass, stone by stone, from the houses he empties."
+  say FUNAKI "And your master is with him. The old man in the straw cloak. Hakuro's men are afraid of him."
+  say FUNAKI "Take my chain. I never want to see it again."
+  toast "Warden's Chain" "Token acquired"
+  sfx gate 1.0
+  shake 0.8
+  wait 0.8
+  narrate "The Great Sluice groaned open. By morning the roofs of Minase stood above dry ground for the first time in six days."
+  wait 0.6
+  fade 1 2.5
+  wait 0.4
+  request chapter_end
+end
+
+scene stillwater_awaken
+  lock
+  letterbox 1 0.5
+  slowmo 0.4 1.2
+  camera player 0 -1 1.3 1.0
+  ripple player 1.0
+  flash 0.4 bfeaff
+  wait 0.6
+  say REI "Be the river. Let them strike, and let them slow."
+  toast "Stillwater Stance awakened" "A perfect deflect chills the attacker: they slow, and their posture cannot recover."
+  hint stillwater
+  camera_release
+  letterbox 0 0.5
+  unlock
+  request save
+end

@@ -16,19 +16,19 @@ scene intro
   camera player 2 -1 1.3 0
   wait 1.0
   narrate "For six hundred years the Kagenui clan has kept the Veil: the woven barrier in the mountain pass between Kurosaki and the Hollow."
-  narrate "Tonight is the Lantern Fair, when every window in Kurosaki is lit and the watch is thin."
+  narrate "Tonight is the Harvest Fair, when every window in Kurosaki is lit and the watch is thin."
   fade 0 3.5 nowait
   wait 1.5
-  sfx campbell 0.5
+  sfx camp 0.5
   wait 2.5
   camera player 3 -2 1.15 3 nowait
   say REI "…"
-  sfx campbell 0.8
+  sfx camp 0.8
   wait 0.4
-  sfx campbell 0.9
+  sfx camp 0.9
   wait 0.4
-  sfx campbell 1.0
-  say REI "Three strokes. That isn't the fair bell. That's the alarm."
+  sfx camp 1.0
+  say REI "Three beacon fires on the ridge. That isn't the fair. That's the alarm."
   player pose stand
   camera player 20 -3 0.8 4
   shake 0.15
@@ -62,7 +62,7 @@ scene fuki_meet
   letterbox 1 0.8
   player face right
   camera npc:fuki -2 -1 1.2 1.6
-  say FUKI "Who's there? Speak, or I'll ring the alarm and the soldiers will take you instead of me."
+  say FUKI "Who's there? Speak, or I'll shout for the soldiers and they can take you instead of me."
   say REI "It's Rei, grandmother."
   say FUKI "Rei. You're alive. They came up from the shore with iron on their faces. Half the village ran for the grove. The other half…"
   say REI "Where is Master Odaka?"
@@ -73,7 +73,7 @@ scene fuki_meet
   ember
   say FUKI "Feed it Sparks, the charge you build in battle, and it will burn for you."
   hint ember
-  say FUKI "The old path climbs through the bamboo grove to the Bell Gate. That bell hangs out of reach of any blade. Remember it."
+  say FUKI "The old path climbs through the bamboo grove to the Weight Gate. Its iron catch hangs out of reach of any blade. Remember it."
   say FUKI "Rest a moment. The camp is still standing, even tonight."
   camera_release
   letterbox 0 0.8
@@ -99,7 +99,7 @@ scene bell_rung
   camera mech:bellgate 0 -2 1.0 1.2
   sfx gate 0.8
   wait 2.0
-  say REI "The old bell still rings true, even if the soldiers don't."
+  say REI "The old counterweight still holds true, even if the soldiers don't."
   camera_release
   letterbox 0 0.5
   unlock

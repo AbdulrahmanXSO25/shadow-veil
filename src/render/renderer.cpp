@@ -221,6 +221,8 @@ static std::vector<uint8_t> genBrush(int w, int h) {
 bool Renderer::init(int width, int height) {
     m_w = width; m_h = height;
     m_winW = width; m_winH = height;
+    std::string missing;
+    if (!loadGL(&missing)) { logError("OpenGL 3.3 is required; the driver is missing: %s", missing.c_str()); return false; }
     m_progBasic = compile(kBasicVS, kBasicFS, "basic");
     m_progSky = compile(kFullscreenVS, kSkyFS, "sky");
     m_progBright = compile(kFullscreenVS, kBrightFS, "bright");

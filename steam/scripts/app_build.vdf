@@ -1,0 +1,14 @@
+"AppBuild"
+{
+	"AppID"         "APPID_HERE"
+	"Desc"          "Shadow Veil build"
+	"ContentRoot"   "../content/"
+	"BuildOutput"   "../output/"
+	"SetLive"       ""
+	"Preview"       "0"
+	"Depots"
+	{
+		"WINDOWS_DEPOTID_HERE"  "depot_windows.vdf"
+		"LINUX_DEPOTID_HERE"    "depot_linux.vdf"
+	}
+}

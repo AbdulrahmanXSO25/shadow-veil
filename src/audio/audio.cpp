@@ -32,7 +32,7 @@ struct Biquad {
 inline float env(float t, float atk, float dec) { return t < atk ? t / atk : std::exp(-(t - atk) / dec); }
 inline float semis(float s) { return std::pow(2.f, s / 12.f); }
 
-// Additive metallic/bell voice: partial ratios with individual decays.
+// Additive metallic voice (steel on steel, coins): partial ratios with individual decays.
 void addPartials(std::vector<float>& out, float f0, const std::vector<std::array<float, 3>>& partials, float gain, float startT = 0) {
     for (size_t i = 0; i < out.size(); i++) {
         float t = i / SR - startT;
@@ -49,22 +49,6 @@ void normalize(std::vector<float>& b, float peak) {
     for (float& v : b) v *= peak / m;
 }
 
-// Plucked string via Karplus–Strong (used offline for pickups and alerts).
-void ksPluck(std::vector<float>& out, float f, float gain, float bright, Rng& rng, float startT = 0, float decay = 0.996f) {
-    int n = std::max(2, (int)(SR / f));
-    std::vector<float> line(n);
-    for (auto& v : line) v = rng.range(-1, 1);
-    for (int k = 0; k < 2; k++) for (int i = 1; i < n; i++) line[i] = lerp(line[i], line[i - 1], 1 - bright);
-    int idx = 0;
-    size_t start = (size_t)(startT * SR);
-    for (size_t i = start; i < out.size(); i++) {
-        int nx = (idx + 1) % n;
-        float y = line[idx];
-        line[idx] = decay * 0.5f * (line[idx] + line[nx]);
-        idx = nx;
-        out[i] += y * gain;
-    }
-}
 } // namespace
 
 std::vector<float> synthesizeSfx(Sfx s, int variant) {
@@ -229,58 +213,92 @@ std::vector<float> synthesizeSfx(Sfx s, int variant) {
         break;
     }
     case Sfx::UiMove: {
-        b = buf(0.09f);
-        addPartials(b, 880 * vr, {{1, 1, 0.025f}, {2.03f, 0.3f, 0.012f}}, 0.6f);
-        normalize(b, 0.3f);
+        // a soft wooden tick
+        b = buf(0.06f);
+        bq.set(2, 1900 * vr, 3.0f);
+        for (size_t i = 0; i < b.size(); i++) { float t = i / SR; b[i] = bq.process(rng.range(-1, 1)) * std::exp(-t * 140); }
+        normalize(b, 0.28f);
         break;
     }
     case Sfx::UiBack: {
-        b = buf(0.12f);
-        addPartials(b, 520, {{1, 1, 0.035f}, {2.1f, 0.3f, 0.015f}}, 0.6f);
-        normalize(b, 0.3f);
+        b = buf(0.1f);
+        bq.set(2, 1100, 2.5f);
+        for (size_t i = 0; i < b.size(); i++) { float t = i / SR; b[i] = bq.process(rng.range(-1, 1)) * std::exp(-t * 90); }
+        normalize(b, 0.28f);
         break;
     }
     case Sfx::UiConfirm: {
-        b = buf(0.9f);
-        addPartials(b, 1760, {{1, 1, 0.35f}, {2.76f, 0.4f, 0.2f}, {5.4f, 0.2f, 0.1f}}, 0.5f);
-        addPartials(b, 880, {{1, 0.6f, 0.04f}}, 0.4f);
-        normalize(b, 0.38f);
+        // a paper-and-wood "tok": a struck block with a short brush of air
+        b = buf(0.35f);
+        bq.set(2, 1250, 4.0f); bq2.set(2, 3200, 1.0f);
+        for (size_t i = 0; i < b.size(); i++) {
+            float t = i / SR;
+            b[i] = bq.process(rng.range(-1, 1)) * std::exp(-t * 60) + bq2.process(rng.range(-1, 1)) * env(t, 0.02f, 0.06f) * 0.25f;
+        }
+        normalize(b, 0.34f);
         break;
     }
-    case Sfx::Bell: {
-        b = buf(2.5f);
-        addPartials(b, 620, {{1, 1, 1.2f}, {1.002f, 0.6f, 1.1f}, {2.0f, 0.5f, 0.8f}, {2.76f, 0.4f, 0.6f}, {3.9f, 0.25f, 0.4f}, {5.4f, 0.15f, 0.25f}}, 0.4f);
+    case Sfx::Catch: {
+        // the iron catch gives way: a heavy clunk and a short chain rattle (no ringing tone)
+        b = buf(0.8f);
+        bq.set(0, 500, 0.9f); bq2.set(2, 2600, 1.5f);
+        for (size_t i = 0; i < b.size(); i++) {
+            float t = i / SR;
+            float thunk = std::sin(TAU * lerp(130.f, 70.f, clamp01(t * 10)) * t) * std::exp(-t * 14);
+            float body = bq.process(rng.range(-1, 1)) * std::exp(-t * 30);
+            float rattle = bq2.process(rng.range(-1, 1)) * (0.5f + 0.5f * std::sin(t * TAU * 38)) * smoothstep(0.05f, 0.1f, t) * std::exp(-t * 7) * 0.4f;
+            b[i] = thunk + body * 0.6f + rattle;
+        }
         normalize(b, 0.75f);
         break;
     }
-    case Sfx::ShrineBell: {
-        b = buf(6.0f);
-        // Bonshō: low fundamental, strongly beating partial pairs, a soft wooden strike.
-        addPartials(b, 98, {{0.5f, 0.5f, 4.5f}, {1.0f, 1.0f, 4.0f}, {1.004f, 0.8f, 3.8f}, {1.18f, 0.5f, 2.6f}, {1.5f, 0.45f, 2.2f},
-                            {2.0f, 0.35f, 1.8f}, {2.006f, 0.3f, 1.7f}, {2.51f, 0.25f, 1.3f}, {3.0f, 0.2f, 1.0f}, {4.07f, 0.12f, 0.7f}}, 0.35f);
-        for (size_t i = 0; i < b.size(); i++) { float t = i / SR; b[i] += std::sin(TAU * 60 * t) * std::exp(-t * 30) * 0.5f; }
-        normalize(b, 0.85f);
+    case Sfx::CampRest: {
+        // resting at a camp: embers catch, a warm breath of fire and wind
+        b = buf(2.6f);
+        Biquad lp; lp.set(0, 420, 0.7f);
+        for (size_t i = 0; i < b.size(); i++) {
+            float t = i / SR;
+            float whoosh = lp.process(rng.range(-1, 1)) * env(t, 0.5f, 0.9f) * 1.8f;
+            if (rng.chance(0.0025f * std::exp(-t))) for (size_t k = i; k < std::min(b.size(), i + 300); k++) b[k] += rng.range(-1, 1) * std::exp(-(float)(k - i) / 40.f) * 0.5f;
+            b[i] += whoosh;
+        }
+        normalize(b, 0.6f);
         break;
     }
     case Sfx::Pickup: {
-        b = buf(1.2f);
-        const float notes[] = {0, 5, 7, 12};
-        for (int k = 0; k < 4; k++) ksPluck(b, 587.33f * semis(notes[k]), 0.4f, 0.6f, rng, k * 0.06f);
-        normalize(b, 0.45f);
+        // coins and cloth: a few small metallic clinks
+        b = buf(0.5f);
+        for (int k = 0; k < 3; k++) {
+            float st = k * 0.05f + rng.range(0, 0.02f);
+            addPartials(b, rng.range(3800, 5200), {{1, 1, 0.03f}, {1.53f, 0.5f, 0.02f}}, 0.4f, st);
+        }
+        bq.set(2, 2400, 0.8f);
+        for (size_t i = 0; i < b.size(); i++) { float t = i / SR; b[i] += bq.process(rng.range(-1, 1)) * env(t, 0.01f, 0.05f) * 0.2f; }
+        normalize(b, 0.42f);
         break;
     }
     case Sfx::Alert: {
-        b = buf(0.6f);
-        ksPluck(b, 880, 0.6f, 0.9f, rng, 0, 0.993f);
-        ksPluck(b, 932.3f, 0.4f, 0.9f, rng, 0.0f, 0.993f);
+        // a blade leaving its scabbard
+        b = buf(0.55f);
+        for (size_t i = 0; i < b.size(); i++) {
+            float t = i / SR;
+            if (i % 32 == 0) bq.set(2, lerp(3000.f, 7500.f, clamp01(t / 0.3f)), 3.0f);
+            b[i] = bq.process(rng.range(-1, 1)) * smoothstep(0, 0.05f, t) * smoothstep(0.5f, 0.25f, t);
+        }
+        addPartials(b, 2900, {{1, 0.5f, 0.12f}, {1.37f, 0.3f, 0.08f}}, 0.15f, 0.28f);
         normalize(b, 0.5f);
         break;
     }
     case Sfx::Perilous: {
-        b = buf(1.4f);
-        addPartials(b, 140, {{1, 1, 0.9f}, {1.41f, 0.6f, 0.7f}, {2.13f, 0.5f, 0.5f}, {2.97f, 0.3f, 0.4f}}, 0.4f);
-        addPartials(b, 1650, {{1, 1, 0.3f}, {1.5f, 0.5f, 0.2f}}, 0.25f);
-        for (size_t i = 0; i < b.size(); i++) b[i] *= smoothstep(0, 0.02f, i / SR);
+        // danger: a harsh rising steel scrape over a deep impact
+        b = buf(1.0f);
+        for (size_t i = 0; i < b.size(); i++) {
+            float t = i / SR;
+            if (i % 32 == 0) bq.set(2, lerp(900.f, 4200.f, clamp01(t / 0.35f)), 5.0f);
+            float scrape = bq.process(rng.range(-1, 1)) * smoothstep(0, 0.03f, t) * smoothstep(0.6f, 0.2f, t) * 1.6f;
+            float boom = std::sin(TAU * lerp(90.f, 40.f, clamp01(t * 3)) * t) * std::exp(-t * 6);
+            b[i] = scrape + boom * 0.9f;
+        }
         normalize(b, 0.8f);
         break;
     }
@@ -324,11 +342,15 @@ std::vector<float> synthesizeSfx(Sfx s, int variant) {
 
 // ======================================================================= real-time synth
 
-struct KotoVoice {
-    std::vector<float> line; int idx = 0; float gain = 0, pan = 0, decay = 0.997f; bool active = false; int age = 0;
+// A sung voice: a band-limited glottal pulse shaped by three vowel formants. The score is voice, breath and wind only.
+struct SingVoice {
+    float f = 220, gain = 0, pan = 0, t = 0, dur = 1, atk = 0.3f, rel = 0.6f, ph = 0, vibPh = 0, breath = 0.15f;
+    int vowel = 0;
+    bool active = false, hum = false;
+    Biquad f1, f2, f3, lp;
 };
-
-struct TaikoVoice { float t = 0, f0 = 60, gain = 0, ph = 0; bool rim = false, active = false; Biquad bp; };
+// Wind through a gap: narrow band-passed noise that wanders around a pitch.
+struct WindTone { float f = 400, gain = 0, t = 0, dur = 4, pan = 0; bool active = false; Biquad bp; };
 
 struct SfxVoice { const std::vector<float>* buf = nullptr; double pos = 0; float rate = 1, gainL = 0, gainR = 0; bool active = false; };
 
@@ -352,7 +374,7 @@ struct Allpass {
     }
 };
 
-struct Cmd { enum T { Play, Music, Intensity, Amb, Vol, Pause, Lowpass } t; Sfx sfx{}; float a = 0, b = 0, c = 0, d = 0; MusicMode mode{}; };
+struct Cmd { enum T { Play, Music, Intensity, Amb, Vol, Pause, Lowpass } t; Sfx sfx{}; float a = 0, b = 0, c = 0, d = 0, e = 0, f = 0; MusicMode mode{}; };
 
 class Synth {
 public:
@@ -429,39 +451,49 @@ private:
             if (c.mode != mode) { mode = c.mode; phraseCounter = 0; }
             break;
         case Cmd::Intensity: intensity = clamp01(c.a); break;
-        case Cmd::Amb: amb = {c.a, c.b, c.c, c.d}; break;
+        case Cmd::Amb: amb = {c.a, c.b, c.c, c.d, c.e, c.f}; break;
         case Cmd::Vol: master = c.a; musicVol = c.b; sfxVol = c.c; break;
         case Cmd::Pause: lpTarget = c.a > 0.5f ? 0.85f : lowpassReq; paused = c.a > 0.5f; break;
         case Cmd::Lowpass: lowpassReq = clamp01(c.a); if (!paused) lpTarget = lowpassReq; break;
         }
     }
 
-    // ---------------- music
-    static constexpr int kScale[5] = {0, 1, 5, 7, 8};   // In (Miyako-bushi) on D
-    float degFreq(int deg) const {
+    // ---------------- music: voices, breath and wind (no instruments)
+    static constexpr int kScale[5] = {0, 2, 3, 7, 8};   // a sombre pentatonic on D (hirajoshi colour)
+    float degFreq(int deg, float base = 146.83f) const {
         int oct = (int)std::floor(deg / 5.0f);
         int d = deg - oct * 5;
-        return 146.83f * semis((float)(oct * 12 + kScale[d]));
+        return base * semis((float)(oct * 12 + kScale[d]));
     }
-
-    void pluck(float f, float gain, float pan, float bright = 0.55f, float decay = 0.9965f) {
-        KotoVoice* v = nullptr;
-        for (auto& k : koto) if (!k.active) { v = &k; break; }
-        if (!v) { v = &koto[0]; for (auto& k : koto) if (k.age > v->age) v = &k; }
-        int n = std::max(2, (int)(SR / f));
-        v->line.assign(n, 0.f);
-        for (auto& x : v->line) x = rng.range(-1, 1);
-        for (int pass = 0; pass < 2; pass++) for (int i = 1; i < n; i++) v->line[i] = lerp(v->line[i], v->line[i - 1], 1 - bright);
-        v->idx = 0; v->gain = gain; v->pan = pan; v->decay = decay; v->active = true; v->age = 0;
+    static void formants(int vowel, bool high, float& a, float& b, float& c) {
+        // 0 ah, 1 oh, 2 oo, 3 eh
+        static const float male[4][3] = {{730, 1090, 2440}, {570, 840, 2410}, {300, 870, 2240}, {530, 1840, 2480}};
+        static const float fem[4][3] = {{850, 1220, 2810}, {590, 920, 2710}, {370, 950, 2670}, {610, 2330, 2990}};
+        const float* f = high ? fem[vowel & 3] : male[vowel & 3];
+        a = f[0]; b = f[1]; c = f[2];
     }
-    void drum(float f0, float gain, bool rim) {
-        TaikoVoice* v = nullptr;
-        for (auto& d : taiko) if (!d.active) { v = &d; break; }
-        if (!v) v = &taiko[rng.irange(0, (int)taiko.size() - 1)];
-        v->t = 0; v->ph = 0; v->f0 = f0; v->gain = gain; v->rim = rim; v->active = true;
-        v->bp = Biquad(); v->bp.set(2, rim ? 2600.f : 300.f, rim ? 2.f : 0.8f);
+    // sing(note, gain, pan, duration, vowel, attack, release, hum)
+    void sing(float f, float gain, float pan, float dur, int vowel, float atk = 0.35f, float rel = 0.8f, bool hum = false) {
+        SingVoice* v = nullptr;
+        for (auto& x : voicesV) if (!x.active) { v = &x; break; }
+        if (!v) { v = &voicesV[0]; for (auto& x : voicesV) if (x.t > v->t) v = &x; }
+        *v = SingVoice();
+        v->f = f; v->gain = gain; v->pan = pan; v->dur = dur; v->vowel = vowel; v->atk = atk; v->rel = rel; v->hum = hum; v->active = true;
+        v->ph = rng.range(0, 1); v->vibPh = rng.range(0, TAU);
+        float a, b, c; formants(vowel, f > 260, a, b, c);
+        v->f1.set(2, a, 6); v->f2.set(2, b, 8); v->f3.set(2, c, 10);
+        v->lp.set(0, hum ? 520.f : 3600.f, 0.7f);
+        v->breath = hum ? 0.05f : 0.12f;
     }
-    void shaku(float f, float dur) { shF = f; shTarget = 1; shT = 0; shDur = dur; shBend = -0.06f; }
+    void chant(float f, float gain, float pan, int vowel) { sing(f, gain * 4.6f, pan, 0.12f, vowel, 0.012f, 0.09f); }
+    void wind(float f, float gain, float dur, float pan) {
+        WindTone* w = nullptr;
+        for (auto& x : winds) if (!x.active) { w = &x; break; }
+        if (!w) w = &winds[rng.irange(0, (int)winds.size() - 1)];
+        w->f = f; w->gain = gain; w->dur = dur; w->pan = pan; w->t = 0; w->active = true;
+        w->bp = Biquad(); w->bp.set(2, f, 40);
+    }
+    void breathSwell(float gain, float dur) { brAmp = 0; brTarget = gain; brT = 0; brDur = dur; }
 
     void onStep() {
         int s = step % 16;
@@ -476,117 +508,113 @@ private:
         switch (mode) {
         case MusicMode::Silent: break;
         case MusicMode::Title: case MusicMode::Explore: case MusicMode::Shrine: {
-            bool shrine = mode == MusicMode::Shrine;
-            static const uint16_t rhythms[] = {0b1000001000100000, 0b1000100000001000, 0b1000000010100000, 0b1010000010000000, 0b1000000000001000};
-            if (s == 0) currentRhythm = rhythms[rng.irange(0, 4)];
-            if (currentRhythm & (1 << (15 - s))) {
-                if (!(shrine && rng.chance(0.4f))) {
-                    int d = deg(shrine ? 6 : 2, shrine ? 13 : 10);
-                    pluck(degFreq(d), 0.32f, rng.range(-0.5f, 0.5f), 0.5f);
-                    if (s == 0 && rng.chance(0.5f)) pluck(degFreq(d - 3), 0.2f, -0.3f, 0.4f);
+            bool camp = mode == MusicMode::Shrine, title = mode == MusicMode::Title;
+            // a long low "oo" bed that changes every four bars
+            if (s == 0 && bar % 4 == 0) {
+                int root = (bar / 4) % 2 == 0 ? -5 : -3;
+                sing(degFreq(root), 0.22f, -0.2f, 13.f, 2, 2.5f, 3.0f, true);
+                sing(degFreq(root + 3), 0.12f, 0.25f, 12.f, 2, 3.0f, 3.0f, true);
+            }
+            // a solo humming phrase, sparse and unhurried
+            if (s == 0 && (bar % (camp ? 2 : 3) == 1 || (title && bar % 2 == 0)) && rng.chance(camp ? 0.9f : 0.75f)) {
+                phrase = rng.irange(3, 5); phraseGap = 0;
+            }
+            if (phrase > 0 && s % 4 == 0) {
+                if (phraseGap-- <= 0) {
+                    int d = deg(camp ? 4 : 3, camp ? 10 : 11);
+                    float dur = rng.range(0.7f, 1.5f) * (camp ? 1.4f : 1.f);
+                    sing(degFreq(d), camp ? 0.2f : 0.17f, rng.range(-0.3f, 0.3f), dur, rng.chance(0.6f) ? 2 : 1, 0.18f, 0.7f, true);
+                    phrase--; phraseGap = rng.irange(0, 1);
                 }
             }
-            if (s == 0 && bar % 4 == 0) pluck(degFreq(-5), 0.3f, 0, 0.35f, 0.998f);
-            if ((mode == MusicMode::Title || shrine) && s == 8 && bar % 4 == 1 && rng.chance(0.7f)) shaku(degFreq(deg(5, 11)), rng.range(2.0f, 3.5f));
-            if (mode == MusicMode::Explore && I > 0.2f && s % 8 == 0) drum(58, 0.25f * I, false);
+            // wind singing through the reeds
+            if (s == 8 && rng.chance(title ? 0.5f : 0.3f)) wind(degFreq(deg(8, 14)), 0.5f, rng.range(3, 6), rng.range(-0.7f, 0.7f));
+            if (mode == MusicMode::Explore && I > 0.2f && s == 0 && bar % 2 == 0) breathSwell(0.3f * I, 3.0f);
             break;
         }
         case MusicMode::Tension: {
-            if (s == 0 || s == 3) drum(52, s == 0 ? 0.45f : 0.25f, false);
-            if (s == 8 && rng.chance(0.6f)) pluck(degFreq(deg(0, 6)), 0.28f, rng.range(-0.4f, 0.4f), 0.45f);
-            if (s == 0 && bar % 2 == 0) pluck(degFreq(-4), 0.25f, 0, 0.3f, 0.998f);
+            if (s == 0 && bar % 2 == 0) {
+                sing(degFreq(-5), 0.24f, -0.2f, 7.5f, 2, 1.5f, 1.5f, true);
+                sing(degFreq(-4), 0.12f, 0.3f, 7.0f, 1, 2.0f, 1.5f, true);   // a close, uneasy second
+            }
+            if (s == 0) breathSwell(0.35f, 1.6f);
+            if (s == 8 && rng.chance(0.4f)) wind(degFreq(deg(10, 15)), 0.6f, 2.5f, rng.range(-0.8f, 0.8f));
             break;
         }
         case MusicMode::Combat: case MusicMode::Boss: {
             bool boss = mode == MusicMode::Boss;
-            static const uint16_t big = 0b1000000010100000, bigBoss = 0b1001001010100010;
-            static const uint16_t rim = 0b0010100000101010;
-            uint16_t bp = boss ? bigBoss : big;
-            if (bp & (1 << (15 - s))) drum(boss ? 48 : 54, 0.75f, false);
-            if ((rim & (1 << (15 - s))) && I > 0.3f) drum(0, 0.25f, true);
-            // driving low ostinato
+            // a sung ostinato in short syllables
             static const int ost[8] = {0, 0, 3, 0, 4, 3, 1, 0};
-            if (s % 2 == 0) pluck(degFreq(ost[(s / 2 + bar) % 8] - 5), 0.26f, -0.2f, 0.6f, 0.993f);
-            if (boss && s % 2 == 1 && I > 0.6f) pluck(degFreq(ost[(s / 2) % 8]), 0.12f, 0.3f, 0.7f, 0.99f);
-            if (s == 0 && bar % 2 == 0 && boss) shaku(degFreq(deg(6, 12)), 2.6f);
-            if (s == 0 && bar % 4 == 2 && !boss && rng.chance(0.5f)) shaku(degFreq(deg(5, 10)), 2.0f);
+            static const uint16_t pat = 0b1010101010110110, patBoss = 0b1011101010111011;
+            if ((boss ? patBoss : pat) & (1 << (15 - s))) chant(degFreq(ost[(s / 2 + bar) % 8] - 5), (boss ? 0.34f : 0.28f) * (0.6f + 0.4f * I), -0.15f, s % 4 == 0 ? 0 : 1);
+            // sustained chords above, a new one every two bars
+            if (s == 0 && bar % 2 == 0) {
+                int r = (bar / 2) % 4;
+                static const int prog[4] = {0, -2, 1, -1};
+                int root = prog[r];
+                sing(degFreq(root), 0.26f, -0.35f, 3.8f, 0, 0.25f, 0.8f);
+                sing(degFreq(root + 2), 0.21f, 0.35f, 3.8f, 0, 0.3f, 0.8f);
+                if (boss || I > 0.6f) sing(degFreq(root + 5), 0.18f, 0.0f, 3.8f, 0, 0.35f, 0.8f);
+                if (boss) sing(degFreq(root - 5), 0.2f, 0.0f, 3.8f, 1, 0.2f, 0.8f);
+            }
+            if (s == 0) breathSwell(boss ? 0.4f : 0.25f, 0.9f);
+            if (boss && s == 8 && bar % 4 == 3) wind(degFreq(deg(10, 14)), 0.7f, 2.0f, rng.range(-0.6f, 0.6f));
             break;
         }
         case MusicMode::Requiem: {
-            if (s == 0 && bar % 2 == 0) shaku(degFreq(deg(4, 10)), 3.2f);
-            if (s == 0 && bar % 4 == 0) pluck(degFreq(-5), 0.3f, 0, 0.3f, 0.998f);
+            if (s == 0 && bar % 2 == 0) sing(degFreq(deg(5, 10)), 0.22f, 0.1f, 3.4f, 0, 0.6f, 1.6f);
+            if (s == 0 && bar % 4 == 0) sing(degFreq(-5), 0.22f, 0, 9.f, 2, 2.0f, 2.5f, true);
             break;
         }
         }
     }
 
     float tempoFor(MusicMode m) const {
-        switch (m) { case MusicMode::Combat: return 96; case MusicMode::Boss: return 108; case MusicMode::Shrine: case MusicMode::Requiem: return 64; default: return 76; }
+        switch (m) { case MusicMode::Combat: return 96; case MusicMode::Boss: return 108; case MusicMode::Shrine: case MusicMode::Requiem: return 60; default: return 72; }
+    }
+
+    static float polyBlep(float t, float dt) {
+        if (t < dt) { t /= dt; return t + t - t * t - 1; }
+        if (t > 1 - dt) { t = (t - 1) / dt; return t * t + t + t + 1; }
+        return 0;
     }
 
     void musicSample(float& L, float& R) {
         float stepLen = SR * 60.f / tempoFor(mode) / 4.f;
         if (++stepPos >= stepLen) { stepPos = 0; step++; onStep(); }
-        // layer gains glide toward the mode's mix
-        float droneT = 0.0f;
-        switch (mode) {
-        case MusicMode::Silent: droneT = 0; break;
-        case MusicMode::Title: droneT = 0.8f; break;
-        case MusicMode::Explore: droneT = 0.55f; break;
-        case MusicMode::Tension: droneT = 0.9f; break;
-        case MusicMode::Combat: droneT = 0.5f; break;
-        case MusicMode::Boss: droneT = 0.8f; break;
-        case MusicMode::Shrine: droneT = 1.0f; break;
-        case MusicMode::Requiem: droneT = 0.9f; break;
-        }
-        droneGain = lerp(droneGain, droneT, 0.00003f);
-        dronePhase += 1.f / SR;
-        float t = dronePhase;
-        bool dark = mode == MusicMode::Tension || mode == MusicMode::Boss;
-        float d1 = dark ? 73.42f : 146.83f, d2 = dark ? 77.78f : 220.f, d3 = dark ? 110.f : 329.63f;
-        droneLfo = 0.5f + 0.5f * std::sin(t * 0.21f);
-        float drone = (std::sin(TAU * d1 * t) * 0.5f + std::sin(TAU * d1 * 1.003f * t) * 0.3f + std::sin(TAU * d2 * t) * 0.25f * droneLfo +
-                       std::sin(TAU * d3 * t) * 0.12f * (1 - droneLfo) + std::sin(TAU * d3 * 1.5f * t) * 0.05f);
-        drone *= droneGain * 0.11f;
-        float l = drone, r = drone;
-        for (auto& v : koto) {
+        float l = 0, r = 0;
+        for (auto& v : voicesV) {
             if (!v.active) continue;
-            int n = (int)v.line.size(), nx = (v.idx + 1) % n;
-            float y = v.line[v.idx];
-            v.line[v.idx] = v.decay * 0.5f * (v.line[v.idx] + v.line[nx]);
-            v.idx = nx;
-            if (++v.age > SR * 6) v.active = false;
-            float g = v.gain * 0.6f;
-            l += y * g * (1 - v.pan) * 0.7f; r += y * g * (1 + v.pan) * 0.7f;
+            v.t += 1 / SR;
+            float e = v.t < v.atk ? v.t / v.atk : (v.t < v.dur ? 1.f : std::max(0.f, 1 - (v.t - v.dur) / v.rel));
+            if (v.t > v.dur + v.rel) { v.active = false; continue; }
+            float vib = 1 + std::sin(v.vibPh + v.t * TAU * 5.0f) * 0.007f * smoothstep(0.25f, 0.9f, v.t);
+            float f = v.f * vib;
+            float dtp = f / SR;
+            v.ph += dtp; if (v.ph >= 1) v.ph -= 1;
+            float saw = 2 * v.ph - 1 - polyBlep(v.ph, dtp);
+            float src = saw * 0.6f + rng.range(-1, 1) * v.breath;
+            float y = v.hum ? v.lp.process(src) * 0.9f + v.f1.process(src) * 0.3f
+                            : v.f1.process(src) + v.f2.process(src) * 0.55f + v.f3.process(src) * 0.25f;
+            y *= e * v.gain * (v.hum ? 1.7f : 2.6f);
+            l += y * (1 - v.pan) * 0.6f; r += y * (1 + v.pan) * 0.6f;
         }
-        for (auto& d : taiko) {
-            if (!d.active) continue;
-            d.t += 1 / SR;
-            float x;
-            if (d.rim) x = d.bp.process(rng.range(-1, 1)) * std::exp(-d.t * 70) * 1.5f;
-            else {
-                float f = d.f0 * (1 + 1.4f * std::exp(-d.t * 28));
-                d.ph += TAU * f / SR;
-                x = std::sin(d.ph) * std::exp(-d.t * 5.5f) + d.bp.process(rng.range(-1, 1)) * std::exp(-d.t * 45) * 0.5f;
-            }
-            if (d.t > 1.5f) d.active = false;
-            l += x * d.gain * 0.5f; r += x * d.gain * 0.5f;
+        for (auto& w : winds) {
+            if (!w.active) continue;
+            w.t += 1 / SR;
+            if (w.t > w.dur) { w.active = false; continue; }
+            float e = std::sin(PI * w.t / w.dur);
+            e *= e;
+            float y = w.bp.process(rng.range(-1, 1)) * e * w.gain * 0.9f;
+            l += y * (1 - w.pan); r += y * (1 + w.pan);
         }
-        // shakuhachi
-        if (shTarget > 0 || shAmp > 0.0001f) {
-            shT += 1 / SR;
-            if (shT > shDur) shTarget = 0;
-            shAmp = lerp(shAmp, shTarget, shTarget > 0 ? 0.00012f : 0.00006f);
-            shBend = lerp(shBend, 0.f, 0.00008f);
-            float vib = 1 + std::sin(shT * TAU * 5.2f) * 0.006f * smoothstep(0.4f, 1.2f, shT);
-            float f = shF * vib * (1 + shBend);
-            shPh += TAU * f / SR;
-            if (shPh > TAU) shPh -= TAU;
-            if (std::abs(shBpF - f) > 4) { shBp.set(2, f * 2, 3.5f); shBpF = f; }
-            float tone = std::sin(shPh) + 0.22f * std::sin(2 * shPh) + 0.07f * std::sin(3 * shPh);
-            float breath = shBp.process(rng.range(-1, 1)) * (0.6f + 0.4f * (1 - shAmp));
-            float x = (tone * 0.5f + breath * 0.35f) * shAmp * 0.2f;
-            l += x * 0.8f; r += x;
+        if (brTarget > 0 || brAmp > 0.0001f) {
+            brT += 1 / SR;
+            float k = brT / std::max(0.1f, brDur);
+            brAmp = brTarget * (k < 0.5f ? smoothstep(0, 0.5f, k) : smoothstep(1, 0.5f, k));
+            if (k >= 1) { brTarget = 0; brAmp = 0; }
+            brLp += 0.02f * (rng.range(-1, 1) - brLp);
+            l += brLp * brAmp * 1.4f; r += brLp * brAmp * 1.4f;
         }
         L = l; R = r;
     }
@@ -617,6 +645,27 @@ private:
             L += c; R += c2;
         }
         if (amb.rumble > 0) { rumbleV += 0.002f * (rng.range(-1, 1) - rumbleV); L += rumbleV * amb.rumble * 3; R += rumbleV * amb.rumble * 3; }
+        if (amb.rain > 0) {
+            // rain: bright hiss (high-passed noise) plus scattered close drops
+            float nL = rng.range(-1, 1), nR = rng.range(-1, 1);
+            rainLpL += 0.35f * (nL - rainLpL); rainLpR += 0.35f * (nR - rainLpR);
+            float hissL = nL - rainLpL, hissR = nR - rainLpR;
+            float swell = 0.75f + 0.25f * fbm1(ambT * 0.3f, 17, 2);
+            L += hissL * 0.09f * amb.rain * swell; R += hissR * 0.09f * amb.rain * swell;
+            if (rng.chance(0.004f * amb.rain)) { drop = rng.range(0.3f, 1.f); dropPan = rng.range(-0.9f, 0.9f); dropPh = 0; dropF = rng.range(1800, 3800); }
+            if (drop > 0.002f) {
+                dropPh += dropF / SR; drop *= 0.9975f;
+                float d = std::sin(dropPh * TAU) * drop * drop * 0.05f;
+                L += d * (1 - dropPan); R += d * (1 + dropPan);
+            }
+        }
+        if (amb.water > 0) {
+            // running water: low burbling band, slowly modulated
+            waterLp += 0.02f * (rng.range(-1, 1) - waterLp);
+            waterLp2 += 0.08f * (waterLp - waterLp2);
+            float burble = (waterLp - waterLp2) * (0.6f + 0.4f * std::sin(ambT * 3.1f + fbm1(ambT * 0.7f, 4, 2) * 6));
+            L += burble * 2.2f * amb.water; R += burble * 2.0f * amb.water;
+        }
     }
 
 public:
@@ -636,14 +685,14 @@ private:
     MusicMode mode = MusicMode::Silent;
     float intensity = 0;
     long step = 0; float stepPos = 0; int walk = 5; uint16_t currentRhythm = 0; int phraseCounter = 0;
-    std::array<KotoVoice, 16> koto{};
-    std::array<TaikoVoice, 8> taiko{};
-    float droneGain = 0, dronePhase = 0, droneLfo = 0;
-    float shF = 440, shTarget = 0, shAmp = 0, shT = 0, shDur = 0, shPh = 0, shBend = 0, shBpF = 0;
-    Biquad shBp;
+    std::array<SingVoice, 14> voicesV{};
+    std::array<WindTone, 4> winds{};
+    int phrase = 0, phraseGap = 0;
+    float brAmp = 0, brTarget = 0, brT = 0, brDur = 1, brLp = 0;
     // ambience
     AmbienceParams amb;
     float ambT = 0, windL = 0, windR = 0, fireLow = 0, crackle = 0, cracklePan = 0, cricketEnv = 0, rumbleV = 0;
+    float rainLpL = 0, rainLpR = 0, drop = 0, dropPan = 0, dropPh = 0, dropF = 2000, waterLp = 0, waterLp2 = 0;
 
     friend class Audio;
 };
@@ -684,7 +733,7 @@ void Audio::play(Sfx s, float volume, float pitch, float pan) {
 }
 void Audio::setMusic(MusicMode m) { Cmd c{Cmd::Music}; c.mode = m; m_synth->push(c); }
 void Audio::setIntensity(float i) { Cmd c{Cmd::Intensity}; c.a = i; m_synth->push(c); }
-void Audio::setAmbience(const AmbienceParams& a) { Cmd c{Cmd::Amb}; c.a = a.wind; c.b = a.fire; c.c = a.crickets; c.d = a.rumble; m_synth->push(c); }
+void Audio::setAmbience(const AmbienceParams& a) { Cmd c{Cmd::Amb}; c.a = a.wind; c.b = a.fire; c.c = a.crickets; c.d = a.rumble; c.e = a.rain; c.f = a.water; m_synth->push(c); }
 void Audio::setVolumes(float master, float music, float sfx) { Cmd c{Cmd::Vol}; c.a = master; c.b = music; c.c = sfx; m_synth->push(c); }
 void Audio::setPaused(bool p) { Cmd c{Cmd::Pause}; c.a = p ? 1.f : 0.f; m_synth->push(c); }
 void Audio::setLowpass(float a) { Cmd c{Cmd::Lowpass}; c.a = a; m_synth->push(c); }

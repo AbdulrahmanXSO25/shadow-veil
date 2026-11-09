@@ -34,7 +34,11 @@ bool CutsceneLibrary::parse(const std::string& text, std::string& err) {
 
 void CutscenePlayer::start(const CutsceneLibrary& lib, const std::string& name, World& w) {
     auto it = lib.scenes.find(name);
-    if (it == lib.scenes.end()) { logWarn("missing cutscene '%s'", name.c_str()); return; }
+    if (it == lib.scenes.end()) {
+        // optional hooks (opened_<gate>, boss_phase3 ...) are allowed to be absent
+        if (name.rfind("opened_", 0) != 0) logWarn("missing cutscene '%s'", name.c_str());
+        return;
+    }
     m_cmds = it->second; m_name = name; m_pc = 0; m_t = 0; m_active = true; m_started = false;
     m_view.speaker.clear(); m_view.text.clear(); m_view.narration.clear(); m_view.titleDur = 0;
     m_skipT = 0;
@@ -55,7 +59,7 @@ static Vec2 focusPoint(World& w, const std::string& who) {
 
 static Sfx sfxByName(const std::string& n) {
     static const std::map<std::string, Sfx> m = {
-        {"bell", Sfx::Bell}, {"campbell", Sfx::ShrineBell}, {"gate", Sfx::Gate}, {"ignite", Sfx::Ignite}, {"perilous", Sfx::Perilous},
+        {"catch", Sfx::Catch}, {"bell", Sfx::Catch}, {"camp", Sfx::CampRest}, {"campbell", Sfx::CampRest}, {"gate", Sfx::Gate}, {"ignite", Sfx::Ignite}, {"perilous", Sfx::Perilous},
         {"clang", Sfx::Clang}, {"deflect", Sfx::Deflect}, {"execute", Sfx::Execute}, {"swoosh", Sfx::Swoosh}, {"thud", Sfx::Thud},
         {"pickup", Sfx::Pickup}, {"alert", Sfx::Alert}, {"dash", Sfx::Dash}, {"death", Sfx::Death}, {"break", Sfx::Break}, {"slash", Sfx::Slash}};
     auto it = m.find(n);
@@ -210,8 +214,88 @@ bool CutscenePlayer::step(World& w, const CutCommand& c, float dt, bool confirm)
         if (w.save->has(args(c, 0))) m_pc += (size_t)argf(c, 1, 1);
         return true;
     }
+    if (op == "flood") { w.activateLink(args(c, 0)); return true; }
+    if (op == "chase") {
+        w.chaseActive = true; w.chaseSpeed = argf(c, 0, 380);
+        float vw = 1080.f / (w.cam.zoom * kBaseZoom) * 16.f / 9.f;
+        w.chaseX = w.cam.pos.x - vw * 0.5f - 120;
+        w.chaseHit = false;
+        return true;
+    }
+    if (op == "chase_stop") { w.chaseActive = false; return true; }
+    if (op == "layer") { w.level.layer = (int)argf(c, 0, 0); return true; }
+    if (op == "spawn") {
+        // spawn <type> <dxTiles from player> : foes that join mid-scene
+        bool ok = false;
+        EType t = etypeByName(args(c, 0), &ok);
+        if (!ok) { logWarn("cutscene %s: unknown foe %s", m_name.c_str(), args(c, 0).c_str()); return true; }
+        Enemy e = w.makeEnemy(t, w.player.pos + Vec2{argf(c, 1, 6) * TILE, -4}, argf(c, 1, 6) > 0 ? -1.f : 1.f);
+        e.awareness = 1; e.st = EState::Engage; e.lastKnown = w.player.pos; e.cooldown = 1.0f; e.flash = 1;
+        e.id = (int)w.enemies.size();
+        w.enemies.push_back(e);
+        return true;
+    }
+    if (op == "boss_leave") {
+        // a spared champion withdraws: they fade from the field
+        if (w.bossIdx >= 0 && w.bossIdx < (int)w.enemies.size()) { Enemy& b = w.enemies[w.bossIdx]; b.yielded = false; b.boss = false; b.st = EState::Dead; }
+        return true;
+    }
+    if (op == "choice") {
+        // choice <key> "<prompt>" "<label>[@requiredFlag]" ... ; sets flag <key>_<n> (n from 1)
+        if (first) {
+            m_view.choicePrompt = args(c, 1);
+            m_view.choices.clear(); m_view.choiceLocked.clear();
+            for (size_t i = 2; i < c.args.size(); i++) {
+                std::string lab = c.args[i], req;
+                size_t at = lab.find('@');
+                if (at != std::string::npos) { req = lab.substr(at + 1); lab = lab.substr(0, at); }
+                m_view.choices.push_back(lab);
+                m_view.choiceLocked.push_back(!req.empty() && !w.save->has(req));
+            }
+            m_view.choiceSel = 0;
+            while (m_view.choiceSel < (int)m_view.choices.size() - 1 && m_view.choiceLocked[m_view.choiceSel]) m_view.choiceSel++;
+            if (autoAdvance) {
+                int pick = std::clamp(autoChoice, 0, (int)m_view.choices.size() - 1);
+                if (!m_view.choiceLocked[pick]) m_view.choiceSel = pick;
+            }
+        }
+        if (m_view.choices.empty()) return true;
+        if ((confirm || autoAdvance) && !m_view.choiceLocked[m_view.choiceSel]) {
+            for (size_t i = 0; i < m_view.choices.size(); i++) w.save->flags.erase(args(c, 0) + "_" + std::to_string(i + 1));
+            w.save->flags.insert(args(c, 0) + "_" + std::to_string(m_view.choiceSel + 1));
+            m_view.choices.clear(); m_view.choiceLocked.clear(); m_view.choicePrompt.clear();
+            if (w.audio) w.audio->play(Sfx::UiConfirm, 0.8f);
+            return true;
+        }
+        return false;
+    }
+    if (op == "goto_if") {
+        // goto_if <flag> <label> : jump forward to "label <name>" when the flag is set
+        if (w.save->has(args(c, 0))) {
+            for (size_t i = m_pc + 1; i < m_cmds.size(); i++)
+                if (m_cmds[i].op == "label" && args(m_cmds[i], 0) == args(c, 1)) { m_pc = i; break; }
+        }
+        return true;
+    }
+    if (op == "goto") {
+        for (size_t i = m_pc + 1; i < m_cmds.size(); i++)
+            if (m_cmds[i].op == "label" && args(m_cmds[i], 0) == args(c, 0)) { m_pc = i; break; }
+        return true;
+    }
+    if (op == "label") return true;
     logWarn("cutscene %s line %d: unknown op '%s'", m_name.c_str(), c.line, op.c_str());
     return true;
+}
+
+void CutscenePlayer::navChoice(int d) {
+    if (m_view.choices.empty() || d == 0) return;
+    int n = (int)m_view.choices.size();
+    int s = m_view.choiceSel;
+    for (int k = 0; k < n; k++) {
+        s = (s + d + n) % n;
+        if (!m_view.choiceLocked[s]) break;
+    }
+    m_view.choiceSel = s;
 }
 
 bool CutscenePlayer::update(World& w, float dt, bool confirm, bool skipHeld) {
@@ -221,7 +305,7 @@ bool CutscenePlayer::update(World& w, float dt, bool confirm, bool skipHeld) {
     if (m_view.titleDur > 0) { m_view.titleT += dt; if (m_view.titleT >= m_view.titleDur) m_view.titleDur = 0; }
     if (!m_active) return false;
     m_skipT = skipHeld ? m_skipT + dt : 0;
-    bool skipping = m_skipT > 1.0f;
+    bool skipping = m_skipT > 1.0f && m_view.choices.empty();
     int guard = 0;
     while (m_pc < m_cmds.size() && guard++ < 512) {
         const CutCommand& c = m_cmds[m_pc];
@@ -234,7 +318,8 @@ bool CutscenePlayer::update(World& w, float dt, bool confirm, bool skipHeld) {
             if (c.op == "npc" && (args(c, 1) == "walk")) { if (Npc* n = w.npc(args(c, 0))) { n->pos.x += argf(c, 2, 0) * TILE; n->prevPos = n->pos; n->walking = false; } vis = true; }
             if (c.op == "npc" && args(c, 1) == "fade") { if (Npc* n = w.npc(args(c, 0))) { n->alpha = argf(c, 2, 0); n->visible = n->alpha > 0; } vis = true; }
             if (c.op == "player" && args(c, 0) == "walk") { w.player.pos.x += argf(c, 1, 0) * TILE; w.player.prevPos = w.player.pos; vis = true; }
-            done = vis ? true : step(w, c, 0, false);
+            if (c.op == "choice") { done = step(w, c, 0, false); if (!done) { m_skipT = 0; break; } }
+            else done = vis ? true : step(w, c, 0, false);
             if (c.op == "fade") { m_fadeTarget = argf(c, 0, 0); }
             if (c.op == "letterbox") { m_letterTarget = argf(c, 0, 0); }
             m_view.speaker.clear(); m_view.text.clear(); m_view.narration.clear(); m_view.titleDur = 0;

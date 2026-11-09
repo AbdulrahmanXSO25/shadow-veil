@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Shadow Veil
+GenericName=Action Platformer
+Comment=A shinobi's journey through six chapters to the heart of the Veil
+Exec=shadow_veil
+Icon=dev.shadowveil.game
+Terminal=false
+Categories=Game;ActionGame;
+Keywords=ninja;samurai;platformer;stealth;
+StartupWMClass=dev.shadowveil.game

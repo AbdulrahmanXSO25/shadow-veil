@@ -1,7 +1,7 @@
 #pragma once
 #include "core/math.h"
-#include <GL/gl.h>
-#include <GL/glext.h>
+#include <string>
+#include "render/gl.h"
 #include <vector>
 #include <string>
 #include <memory>

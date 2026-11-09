@@ -1,5 +1,5 @@
 # SHADOW VEIL — 影ノ帳 (Kage no Tobari)
-### Design Bible · v0.1
+### Design Bible · v0.9
 
 ---
 
@@ -38,30 +38,33 @@ to burn Kurosaki and take the Anchor. **Rei Kagenui**, the clan's youngest sworn
 | **Fuki** | Camp keeper of Kurosaki; blunt, warm, half-blind. | Hunched, lantern | Awakens Rei's **Ember Art**. Keeper of the clan's records. |
 | **Tetsu, the Iron Ronin** | Hakuro's vanguard captain. Chapter 1 boss. | Massive, crescent kabuto, nodachi | A disgraced swordsman who wants an honourable death. Dying, he reveals *who let them in*. |
 | **Lord Hakuro** | Warlord. Wants the Anchor to bring down the Veil and march his army through. | Pale armour, wolf-pelt mantle | Not the true threat — a tool of Odaka's plan, and finally a victim of it. |
-| **The Weaver** | The voice beyond the Veil. | Unseen; gold thread motifs | Rei's mother, who has held the Veil from the far side for nineteen years. |
+| **Sayo, the Weaver** | Odaka's sister; Rei's mother. | Gold threads, loom | Has held the Veil closed alone for twenty years. Speaks to Rei from Chapter V. |
+| **Hana** | Fuki's granddaughter. | Pink ribbon | Taken to the castle in Chapter II with the Minase children; rescued in Chapter IV. |
+| **Funaki** (II), **Karasu** (III), **Kagami** (V) | Champions | Tide chain · crow mask · mirror blade | Each is beaten and **spared**: the mercy theme. Each tells Rei part of the truth. |
 
-### Chapter Plan (5 worlds)
-| # | World | Palette & Mood | Narrative Purpose | Boss |
+### Chapter Plan (6 worlds, as shipped)
+| # | World | Palette & Mood | Narrative Purpose | Champion |
 |---|---|---|---|---|
-| 1 | **The Ashen Grove** — Kurosaki village & bamboo forest | Moon-indigo → ember orange → jade grove → crimson gate | Loss. Inciting incident. Revelation: Odaka opened the Gate. | Tetsu, the Iron Ronin |
-| 2 | **The Drowned Terrace** | Rain, teal & jade, lanterns under water | Grief. The clan's history; first glimpse of the Weaver. | The Tide Warden of the Flooded Hall |
-| 3 | **Crimson Maple Pass** | Autumn dusk, red-gold, vertical cliffs | Pursuit. Ridge duelists who remember the Veil being woven. | The Crow King |
-| 4 | **Castle Hakuro** | Snow, white/steel-blue, ink black | Infiltration. Hakuro learns he was used. | Lord Hakuro |
-| 5 | **The Mirror Province** | Inverted: violet sky, gold thread, white ink | Truth. Rei finds her mother beyond the Veil. | Odaka Sen |
+| I | **The Ashen Grove** — Kurosaki & bamboo forest | Moon-indigo → ember → jade → crimson | Loss. Revelation: Odaka opened the Gate. | Tetsu, the Iron Ronin (killed) |
+| II | **The Drowned Terrace** | Rain, teal, flooded rice terraces | Hakuro's captain drowns Minase; Hana is taken. | Funaki, the Tide Warden (spared) |
+| III | **Crimson Maple Pass** | Autumn dusk, red-gold, vertical cliffs | The "crows" are exiles from the Hollow, not monsters. | Karasu, the Crow King (spared) |
+| IV | **Castle Hakuro** | Snow, steel-blue, beacon light | Rescue the captives. Hakuro's pact with Odaka. | Lord Hakuro (spared) |
+| V | **The Mirror Province** | Violet sky, the world doubled in glass | Sayo speaks. Rei learns she is Sayo's daughter. | Kagami of the Hollow (spared) |
+| VI | **The Heart of the Veil** | Loom gold, unravelling amber | Odaka and Sayo. The choice. | Odaka Sen (spared) |
 
-**Ending choice** (Chapter 5): *Reweave* the Veil (mother remains on the far side as its anchor; the world
-stays safe), *Unravel* it (the pass opens; Odaka's dream), or — only with all 25 Ink Scrolls found —
-*Restitch* it with Rei's own thread, freeing her mother at a cost the New Game+ epilogue explores.
+**Ending choice** (Chapter VI): *Reweave* the Veil (Sayo keeps it, but no longer alone), *Unravel* it gently
+(the exiles come home; the borders are uneasy), or — only with all 25 ink scrolls — *Restitch* it into a weave
+with doors, held by many hands, and bring Sayo home.
 
 ### Chapter 1 beat sheet (the vertical slice)
-1. **Cold open** — Cliff camp under a white moon. Rei rests. Bells. The horizon catches fire.
+1. **Cold open** — Cliff camp under a white moon. Rei rests. Drums in the valley. The horizon catches fire.
 2. **Descent** — Movement tutorial along the cliff path. The village burning below.
 3. **Village edge** — A lone ashigaru, back turned: the stealth-kill lesson.
 4. **Burning street** — First real fight. Parry taught through survival, not text walls.
 5. **Fuki's camp** — Checkpoint. Fuki gives the Ember Emblem: *"Your master went up to the Gate. Alone."*
 6. **Rooftops** — Archers; Veil-Thread grapple taught over a burning gap.
 7. **The Bamboo Grove** — Colour shifts to jade. Stealth through tall grass; optional secrets.
-8. **The Bell Gate** — Puzzle: strike the bell from range to raise the gate.
+8. **The Weight Gate** — Puzzle: hit the iron catch with a shuriken to drop the counterweight and raise the gate.
 9. **The Ravine** — Cut the counterweight rope to drop the log bridge; mixed squad fight.
 10. **Last camp** — Quiet before the storm. Final lore scroll hints at the twist.
 11. **The Old Gate** — Tetsu duel, two deathblows, flame phase.
@@ -85,7 +88,7 @@ Run · variable jump · coyote time & input buffering · wall-slide & wall-jump 
 * **Perilous attacks** are flagged with a red 危 sigil *and* a distinct diamond shape (colour-blind safe).
   They cannot be guarded; they must be Veil-Stepped through or jumped.
 * **Stealth kill** from behind or above on unaware enemies. Tall grass hides; crouching silences footsteps.
-* **Shuriken**: interrupt archers and wind-ups, strike bells and ropes. Limited ammo.
+* **Shuriken**: interrupt archers and wind-ups, strike catches and ropes. Limited ammo.
 * **Ember Art** (Veil Art #1): flaming crescent projectile; costs **Sparks**, earned from hits and deflections.
 * **Gourd**: heal; charges refill at camps.
 
@@ -140,11 +143,11 @@ Attack tokens limit simultaneous attackers to two, so groups feel threatening bu
 ---
 
 ## 5. Audio Language
-All synthesized at runtime, no samples:
-* **Koto** (Karplus–Strong plucks) on the *In* (miyako-bushi) scale for exploration.
-* **Bamboo flute** (breath-noise + sine with vibrato) for melody in key moments.
-* **War drums** fade in with combat intensity; boss adds a driving ostinato.
-* **Bronze bell** (FM, beating partials) for camps and chapter cards.
+All synthesized at runtime, no samples. **No instruments**: the score is human voice, breath and wind.
+* **Voice**: formant-synthesized hums and sung vowels for exploration, swelling with combat intensity.
+* **Breath and wind**: filtered noise beds that follow the room's wind and the camera's height.
+* **Ambience**: rain hiss and drops, running water, fire crackle, the rumble of the unravelling Veil.
+* Camps: a warm breath of fire and wind. Chapter cards: silence, then voice.
 * Steel: layered metallic partials for deflects; filtered noise for slashes; soft cloth for steps.
 
 ---
@@ -159,5 +162,5 @@ colour-independent perilous telegraphs · full gamepad and keyboard support.
 ## 7. Technical Architecture (summary)
 See `README.md` for building. Code is organised as:
 `core/` (math, files, logging) · `render/` (batched GL renderer, post-FX, text) · `audio/` (synth & mixer) ·
-`game/` (skeleton, actors, combat, level, cutscenes, progression, save) · `ui/` (menus, HUD).
+`game/` (skeleton, actors, combat, level, cutscenes, progression, save) · `platform/` (store services) · `ui/` (glyphs, rich text).
 Content lives in `data/`: room-based ASCII level files and a cutscene script language.

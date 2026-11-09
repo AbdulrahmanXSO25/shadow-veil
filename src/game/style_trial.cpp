@@ -54,21 +54,16 @@ void World::startTrial(Mechanism& m) {
     for (auto& entry : split(m.text, ',')) {
         auto kv = split(entry, ':');
         if (kv.size() != 2) continue;
-        EType t = kv[0] == "spearman" ? EType::Spearman : (kv[0] == "archer" ? EType::Archer : EType::Swordsman);
-        Enemy e;
+        bool ok = false;
+        EType t = etypeByName(kv[0], &ok);
+        if (!ok || enemyDef(t).boss) t = EType::Swordsman;
+        Enemy e = makeEnemy(t, m.pos + Vec2{std::stof(kv[1]) * TILE, -2}, 1.f);
         e.id = (int)enemies.size();
-        e.type = t; e.def = &enemyDef(t);
-        e.pos = e.prevPos = e.home = m.pos + Vec2{std::stof(kv[1]) * TILE, -2};
         e.facing = e.pos.x > player.pos.x ? -1.f : 1.f;
-        float ng = (float)save->ngPlus;
-        e.hpScale = 1 + 0.5f * ng; e.dmgScale = 1 + 0.3f * ng;
-        e.hp = e.def->hp * e.hpScale;
         e.deathblows = 1;
         e.awareness = 1; e.lastKnown = player.pos;
         e.st = EState::Engage;
         e.cooldown = 1.2f + i * 0.4f;
-        e.patrolL = e.patrolR = e.pos.x;
-        e.sash.init(e.pos + Vec2{0, -70}, 7, 6);
         e.flash = 1;
         enemies.push_back(e);
         trialEnemies.push_back(e.id);

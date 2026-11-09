@@ -10,13 +10,13 @@ namespace sv {
 
 enum class Sfx {
     Slash, SlashHeavy, Clang, Deflect, Hit, HitHeavy, Step, Land, Jump, Dash, Grapple, Throw, ShurikenHit,
-    Kill, Execute, Ember, Heal, Hurt, Death, UiMove, UiConfirm, UiBack, Bell, ShrineBell, Pickup, Alert,
+    Kill, Execute, Ember, Heal, Hurt, Death, UiMove, UiConfirm, UiBack, Catch, CampRest, Pickup, Alert,
     Perilous, Break, Gate, Arrow, BowDraw, Swoosh, Thud, Ignite, Count
 };
 
 enum class MusicMode { Silent, Title, Explore, Tension, Combat, Boss, Shrine, Requiem };
 
-struct AmbienceParams { float wind = 0.3f, fire = 0, crickets = 0, rumble = 0; };
+struct AmbienceParams { float wind = 0.3f, fire = 0, crickets = 0, rumble = 0, rain = 0, water = 0; };
 
 class Synth;
 

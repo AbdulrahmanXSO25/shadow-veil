@@ -1,0 +1,12 @@
+"DepotBuild"
+{
+	"DepotID"  "WINDOWS_DEPOTID_HERE"
+	"FileMapping"
+	{
+		"LocalPath"  "windows/ShadowVeil/*"
+		"DepotPath"  "."
+		"Recursive"  "1"
+	}
+	"FileExclusion"  "*.pdb"
+	"FileExclusion"  "steam_appid.txt"
+}

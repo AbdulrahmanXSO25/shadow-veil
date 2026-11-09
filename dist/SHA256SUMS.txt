@@ -1,0 +1,2 @@
+de5ed5e8fc0d355b949bd8c2033ad91cddad9673709cbd0d310359abb3580802  ShadowVeil-0.9.0-windows-x64.zip
+dfcef12bd11f189492132a68d0ca48561f1e6ac6da5c4348ebb5e06b642b2d58  ShadowVeil-0.9.0-linux-x64.tar.gz

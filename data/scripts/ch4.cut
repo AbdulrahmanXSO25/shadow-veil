@@ -1,0 +1,151 @@
+# SHADOW VEIL — Chapter IV: Castle Hakuro
+
+scene intro
+  lock
+  fade 1 0
+  letterbox 1 0
+  player face right
+  player pose stand
+  music silent
+  camera player 3 -2 1.2 0
+  wait 0.8
+  narrate "The first snow fell the night Rei came down from the pass. By morning the road lay white, and so did the castle at its end."
+  narrate "Lord Hakuro, the White Wolf, had held this valley for thirty years. In all that time, no one had climbed his walls and come back down."
+  fade 0 3.0 nowait
+  wait 1.6
+  camera player 14 -3 0.85 4 nowait
+  say REI "Hana's in there somewhere. And the children from Minase."
+  say REI "Gunners on the road. Hounds. Lantern-towers on the walls."
+  say REI "Then I go where the light isn't."
+  camera player 3 -2 1.0 1.5
+  title "第四章" "Chapter IV — Castle Hakuro" 4.5
+  letterbox 0 1.2
+  camera_release
+  unlock
+  request save
+end
+
+scene cells_see
+  lock
+  letterbox 1 0.6
+  camera npc:hana -2 -1 1.05 2
+  say REI "Hana."
+  npc hana face left
+  say HANA "Rei? Keep your voice down. They change the guard at the third drum."
+  say HANA "The gate lifts from above. There's a winch over the far end of the block."
+  say REI "Hold on."
+  say HANA "I've been holding on for nine days. A little longer won't kill me."
+  camera_release
+  letterbox 0 0.6
+  unlock
+end
+
+scene opened_ch4.cells
+  lock
+  letterbox 1 0.6
+  sfx gate 0.8
+  shake 0.3
+  camera npc:hana 2 -1 1.0 1.6
+  wait 0.8
+  npc hana walk -3 120
+  npc cap1 walk -4 100
+  npc cap2 walk -4 110
+  npc cap3 walk -3 100
+  wait 1.6
+  say HANA "Everyone up. Quietly. Hold the little ones' hands."
+  say HANA "You came all this way."
+  say REI "You left me your ribbon. I had to give it back."
+  say HANA "…Keep it. It suits you better than that grim face."
+  say HANA "I'll take them down the road the way we came. You're going up, aren't you? To him."
+  say REI "Hakuro has a pact with my master. I need to know what it is."
+  say HANA "Then go and ask him. Come back down to us after. Promise me that."
+  say REI "I promise."
+  npc hana walk -8 140
+  npc cap1 walk -8 120
+  npc cap2 walk -8 130
+  npc cap3 walk -8 120
+  wait 1.2
+  npc hana fade 0 1.0
+  npc cap1 fade 0 1.0
+  npc cap2 fade 0 1.0
+  npc cap3 fade 0 1.0
+  camera_release
+  letterbox 0 0.6
+  unlock
+  flag hana_freed
+  request save
+end
+
+scene boss_intro
+  lock
+  letterbox 1 1.0
+  music silent
+  camera boss -4 -1 1.0 2.2
+  wait 0.4
+  say HAKURO "You climbed my walls, passed my hounds, and emptied my cells. Funaki warned me about you."
+  say REI "You took a village to build a road. Where does it go?"
+  say HAKURO "To the Mirror Province. To the place where the Veil runs thinnest, and a land no one has farmed in six hundred years waits behind it."
+  say HAKURO "Your master asked for a road and the hands to build it. In return, the Hollow's valleys are mine when the Veil falls."
+  say REI "There are people living in those valleys."
+  say HAKURO "There are people living everywhere. That has never stopped anyone."
+  sfx perilous
+  shake 0.5
+  camera_release
+  letterbox 0 0.8
+  unlock
+  boss_start
+end
+
+scene boss_phase2
+  lock
+  letterbox 1 0.4
+  camera boss 0 -1 1.1 0.6
+  say HAKURO "Enough. To me, my wolves!"
+  shake 0.6
+  wait 0.4
+  camera_release
+  letterbox 0 0.4
+  unlock
+  hint summon
+end
+
+scene boss_outro
+  lock
+  letterbox 1 1.0
+  music elegy
+  wait 1.4
+  camera boss 0 -1 1.3 2.2
+  say HAKURO "…Thirty years. No one has put me on my knees in thirty years."
+  say REI "Then stay there a while, and listen."
+  say REI "The captives are going home. You'll send stone down to Minase for every roof your captain drowned. And the road ends here."
+  say HAKURO "And if I refuse?"
+  say REI "Then I come back. And next time I'll have been angry for longer."
+  wait 0.8
+  say HAKURO "…Very well. It ends here."
+  say HAKURO "But your master is already gone. He took my best men to the Mirror Province six days ago."
+  say HAKURO "He said the Veil is not a wall. It is a weave, held by a single pair of hands. He means to cut those hands free."
+  say REI "Whose hands?"
+  say HAKURO "He didn't say. Only that he had waited twenty years to see her again."
+  wait 0.6
+  narrate "In the courtyard below, the drums fell silent. One by one, the beacons on the walls went out."
+  wait 0.6
+  fade 1 2.5
+  wait 0.4
+  request chapter_end
+end
+
+scene shadow_awaken
+  lock
+  letterbox 1 0.5
+  slowmo 0.4 1.2
+  camera player 0 -1 1.3 1.0
+  flash 0.3 2a2a40
+  wait 0.6
+  say REI "Be still, and the dark takes you in."
+  toast "Shadow Stance awakened" "Crouch without moving for a moment and the shadows hide you, even from close by."
+  hint shadow
+  camera_release
+  letterbox 0 0.5
+  unlock
+  request save
+end

@@ -1,0 +1,47 @@
+api_name,display_name,description,hidden
+stealth_kill,"Silent Petal","Perform a stealth kill.",0
+first_deflect,"Steel Answers Steel","Perfectly deflect an attack.",0
+first_execution,"Broken Will","Execute an enemy whose posture you broke.",0
+first_grapple,"Thread of the Veil","Swing on the Veil-Thread.",0
+bell_puzzle,"Counterweight Catch","Raise the Weight Gate.",0
+bridge_puzzle,"Bridge the Gap","Drop the ravine bridge.",0
+all_scrolls_c1,"Ink and Memory","Find every Ink Scroll in the Ashen Grove.",0
+hollow_moon,"The Hollow Moon","Find the hidden blade.",1
+fox_mask,"Fox at the Fair","Find the Fox Mask.",1
+boss_tetsugen,"Iron Falls","Defeat Tetsu, the Iron Ronin.",0
+boss_nodamage,"Untouched","Defeat any champion without taking damage.",0
+grove_unseen,"Unseen","Cross the Bamboo Grove without being spotted.",0
+deflect_50,"Fifty Answers","Deflect 50 attacks.",0
+speedrun_c1,"Swift Shadow","Finish Chapter I in under 15 minutes.",0
+craft,"Smith's Apprentice","Craft at a camp forge.",0
+skills_5,"Way of the Shadow","Learn five skills.",0
+ngplus,"Another Road","Begin New Game+.",0
+first_death,"Return to Ash","Die. It happens to everyone.",1
+gale,"Eye of the Wind","Complete the Wind Trial and awaken the Gale Stance.",0
+rank_ss,"Kage","Reach the SS Kage Rank.",0
+grade_s,"Shadow Master","Finish any chapter with an S grade or better.",0
+sluice_puzzle,"Let It Flow","Open a sluice and drain the drowned path.",0
+stillwater,"Still Water","Complete the Rain Trial and awaken the Stillwater Stance.",0
+boss_warden,"The Tide Turns","Defeat Funaki, the Tide Warden.",0
+all_scrolls_c2,"Ink in the Rain","Find every Ink Scroll on the Drowned Terrace.",0
+thunder,"Storm Bearer","Complete the Storm Trial and awaken the Thunder Stance.",0
+thunder_three,"Three Strikes","Strike three foes with one thunder-call.",0
+boss_crowking,"Crown of Feathers","Defeat Karasu, the Crow King.",0
+all_scrolls_c3,"Red Leaves","Find every Ink Scroll on the Crimson Maple Pass.",0
+douse_beacons,"Lights Out","Douse six fire-watch beacons with shuriken.",0
+castle_unseen,"Ghost of the Castle","Cross the outer bailey of Castle Hakuro without being spotted.",0
+shadow,"Shadow Kept","Complete the Night Trial and awaken the Shadow Stance.",0
+boss_hakuro,"The Wolf Kneels","Defeat Lord Hakuro, the White Wolf.",0
+all_scrolls_c4,"Letters in the Snow","Find every Ink Scroll in Castle Hakuro.",0
+mirror,"Two Faces","Complete the Mirror Trial and awaken the Mirror Stance.",0
+mirror_50,"Between Pages","Cross between the Bright and the Hollow 50 times.",0
+boss_kagami,"Reflection","Defeat Kagami of the Hollow.",0
+all_scrolls_c5,"The Other Side","Find every Ink Scroll in the Mirror Province.",0
+outrun,"Ahead of the Unravelling","Outrun the Unravelling without being caught.",0
+boss_odaka,"Master and Student","Defeat Odaka Sen.",0
+all_scrolls_c6,"The Last Stitches","Find every Ink Scroll in the Heart of the Veil.",0
+all_scrolls,"The Whole Cloth","Find all 25 Ink Scrolls.",0
+ending_1,"Kept","Reweave the Veil as it was.",0
+ending_2,"Unbound","Let the Veil fall.",0
+ending_3,"The Second Way","Restitch the Veil with a gate in it.",1
+all_chapters,"The End of the Thread","Finish the story.",0

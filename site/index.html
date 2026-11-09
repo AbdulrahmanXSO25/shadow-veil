@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shadow Veil</title>
+<meta name="description" content="Shadow Veil — a hand-crafted 2D action platformer. Six chapters, five sword stances, one choice at the heart of the Veil. Free download for Windows and Linux.">
+<meta property="og:title" content="Shadow Veil">
+<meta property="og:description" content="Deflect, dash and slip through the dark across six chapters to the heart of the Veil.">
+<meta property="og:image" content="https://abdulrahmanxso25.github.io/shadow-veil/img/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c0a0e">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Noto+Serif+JP:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0c0a0e; --ink2: #16131a; --paper: #f2e9da; --dim: #a99f92; --red: #b81c24; --gold: #e2b867;
+  --line: rgba(242, 233, 218, 0.12);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--ink); color: var(--paper); font: 17px/1.65 "Noto Serif", Georgia, serif; }
+a { color: var(--gold); }
+img { max-width: 100%; display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+nav { position: sticky; top: 0; z-index: 10; background: rgba(12, 10, 14, 0.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; gap: 22px; height: 58px; }
+nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .08em; text-decoration: none; color: var(--paper); margin-right: auto; }
+nav .brand img { width: 28px; height: 28px; border-radius: 6px; }
+nav a.link { color: var(--dim); text-decoration: none; font-size: 15px; }
+nav a.link:hover { color: var(--paper); }
+@media (max-width: 640px) { nav a.link.opt { display: none; } }
+
+.hero { position: relative; min-height: min(86vh, 760px); display: grid; align-items: end; overflow: hidden; }
+.hero img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.05); }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(12,10,14,.15) 0%, rgba(12,10,14,.35) 45%, var(--ink) 100%); }
+.hero .wrap { position: relative; z-index: 1; padding-bottom: 64px; }
+.kanji { font-family: "Noto Serif JP", serif; font-weight: 700; color: var(--red); font-size: 22px; letter-spacing: .3em; }
+h1 { font-size: clamp(44px, 9vw, 96px); line-height: 1; margin: 8px 0 14px; letter-spacing: .04em; font-weight: 600; }
+.tag { font-size: clamp(18px, 2.4vw, 22px); color: var(--paper); max-width: 640px; font-style: italic; margin: 0 0 28px; }
+.btns { display: flex; flex-wrap: wrap; gap: 14px; }
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 4px; text-decoration: none; font-weight: 600; letter-spacing: .03em; transition: transform .15s, background .15s; }
+.btn:hover { transform: translateY(-1px); }
+.btn.primary { background: var(--red); color: #fff; }
+.btn.primary:hover { background: #cf2730; }
+.btn.ghost { border: 1px solid rgba(242,233,218,.35); color: var(--paper); }
+.btn svg { width: 20px; height: 20px; fill: currentColor; }
+.btn small { font-weight: 400; opacity: .8; }
+.btn.pending { background: #3a2f33; color: var(--dim); }
+
+section { padding: 84px 0; border-top: 1px solid var(--line); }
+h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 600; margin: 0 0 10px; }
+h2 .k { font-family: "Noto Serif JP", serif; color: var(--red); font-size: .7em; margin-right: 12px; }
+.lead { color: var(--dim); max-width: 720px; margin: 0 0 40px; }
+
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; }
+.feature h3 { margin: 0 0 6px; font-size: 19px; }
+.feature p { margin: 0; color: var(--dim); font-size: 16px; }
+.feature .n { font-family: "Noto Serif JP", serif; color: var(--gold); font-size: 14px; letter-spacing: .2em; }
+
+.chapters { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.ch { background: var(--ink2); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.ch img { aspect-ratio: 16 / 9; object-fit: cover; width: 100%; }
+.ch div { padding: 14px 16px 18px; }
+.ch b { display: block; font-size: 17px; }
+.ch span { color: var(--dim); font-size: 15px; }
+.ch .num { font-family: "Noto Serif JP", serif; color: var(--red); font-size: 13px; letter-spacing: .2em; }
+
+.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.gallery img { border-radius: 4px; aspect-ratio: 16 / 9; object-fit: cover; width: 100%; cursor: zoom-in; }
+
+.dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background: var(--ink2); border: 1px solid var(--line); border-radius: 6px; padding: 26px; }
+.card h3 { margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+.card h3 svg { width: 24px; height: 24px; fill: var(--paper); }
+.card p { color: var(--dim); font-size: 15px; margin: 6px 0 18px; }
+.card ul { color: var(--dim); font-size: 15px; padding-left: 18px; margin: 16px 0 0; }
+.card code { background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 3px; font-size: 14px; }
+.meta { color: var(--dim); font-size: 14px; margin-top: 18px; }
+
+.controls { width: 100%; border-collapse: collapse; font-size: 15px; }
+.controls th, .controls td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.controls th { color: var(--gold); font-weight: 600; }
+.controls td { color: var(--dim); }
+.controls td:first-child { color: var(--paper); }
+.table-scroll { overflow-x: auto; }
+
+footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--dim); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: space-between; }
+
+dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; }
+dialog::backdrop { background: rgba(0,0,0,.85); }
+dialog img { max-height: 90vh; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="img/icon.png" alt="">SHADOW VEIL</a>
+    <a class="link opt" href="#story">Story</a>
+    <a class="link opt" href="#chapters">Chapters</a>
+    <a class="link opt" href="#controls">Controls</a>
+    <a class="link" href="#download">Download</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <img class="bg" src="img/hero.jpg" alt="Rei on the burning street of her village at night">
+  <div class="wrap">
+    <div class="kanji">影ノ帳</div>
+    <h1>Shadow Veil</h1>
+    <p class="tag">Deflect, dash and slip through the dark across six chapters to the heart of the Veil, and decide what it becomes.</p>
+    <div class="btns">
+      <a class="btn primary" id="hero-dl" href="#download">
+        <svg viewBox="0 0 24 24"><path d="M12 3v11.2l4.3-4.3 1.4 1.4L12 17 6.3 11.3l1.4-1.4 4.3 4.3V3h0zM4 19h16v2H4z"/></svg>
+        <span>Download free <small id="hero-os"></small></span>
+      </a>
+      <a class="btn ghost" href="#story">The story</a>
+    </div>
+  </div>
+</header>
+
+<section id="story">
+  <div class="wrap">
+    <h2><span class="k">物語</span>The story</h2>
+    <p class="lead">Six hundred years ago, the Kagenui stitched a veil across the sky and sealed a whole country of exiles behind it.
+      Now the weave is wearing thin. Rei, the last student of an old swordsman, follows her master down from the mountains
+      and learns, chapter by chapter, who is holding the Veil closed — and why he means to cut it.</p>
+    <div class="features">
+      <div class="feature"><div class="n">一</div><h3>Read every strike</h3><p>Deflect at the last moment to break your opponent's posture, then finish with a single decisive Execution. Perilous attacks must be jumped or dodged.</p></div>
+      <div class="feature"><div class="n">二</div><h3>Five stances</h3><p>Gale, Stillwater, Thunder, Shadow and Mirror. Each is earned in a trial and changes how you fight, hide or move.</p></div>
+      <div class="feature"><div class="n">三</div><h3>Move like a shinobi</h3><p>Wall-jumps, a dash, grappling rings, swimming, rising winds and, late in the journey, stepping between two sides of the world.</p></div>
+      <div class="feature"><div class="n">四</div><h3>Mercy is a choice</h3><p>Every champion after the first can be spared. Gather all 25 ink scrolls to unlock the third ending.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="chapters">
+  <div class="wrap">
+    <h2><span class="k">六章</span>Six chapters</h2>
+    <p class="lead">Each chapter is hand-built with its own place, mechanics, champion and stance, and each one can be replayed for a better grade.</p>
+    <div class="chapters">
+      <div class="ch"><img src="img/ch1.jpg" alt="" loading="lazy"><div><span class="num">第一章</span><b>The Ashen Grove</b><span>A village burning under a bamboo forest. Learn the blade.</span></div></div>
+      <div class="ch"><img src="img/ch2.jpg" alt="" loading="lazy"><div><span class="num">第二章</span><b>The Drowned Terrace</b><span>Rice terraces flooded on purpose. Swim, drain the sluices, face the Tide Warden.</span></div></div>
+      <div class="ch"><img src="img/ch3.jpg" alt="" loading="lazy"><div><span class="num">第三章</span><b>Crimson Maple Pass</b><span>Crumbling switchbacks, rising winds and the Crow Band's hidden hamlet.</span></div></div>
+      <div class="ch"><img src="img/ch4.jpg" alt="" loading="lazy"><div><span class="num">第四章</span><b>Castle Hakuro</b><span>Snow, beacon light and hounds. Free the captives without being seen.</span></div></div>
+      <div class="ch"><img src="img/ch5.jpg" alt="" loading="lazy"><div><span class="num">第五章</span><b>The Mirror Province</b><span>A world on two sides of the glass. Step between them with a dash.</span></div></div>
+      <div class="ch"><img src="img/ch6.jpg" alt="" loading="lazy"><div><span class="num">終章</span><b>The Heart of the Veil</b><span>Outrun the unravelling, reach the loom, and choose how it ends.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="gallery">
+  <div class="wrap">
+    <h2><span class="k">景</span>Screenshots</h2>
+    <p class="lead">Captured in-game.</p>
+    <div class="gallery">
+      <img src="img/g_grove.jpg" alt="The bamboo grove under a full moon" loading="lazy">
+      <img src="img/g_flooded.jpg" alt="Rain over the flooded rice terraces" loading="lazy">
+      <img src="img/g_windgap.jpg" alt="The wind gap on the maple pass" loading="lazy">
+      <img src="img/g_court.jpg" alt="The lower court of Castle Hakuro in snow" loading="lazy">
+      <img src="img/g_orchard.jpg" alt="The Silver Orchard in the Mirror Province" loading="lazy">
+      <img src="img/g_unravel.jpg" alt="The Unravelling inside the Veil" loading="lazy">
+      <img src="img/g_ravine.jpg" alt="The ravine in Chapter I" loading="lazy">
+      <img src="img/ch4.jpg" alt="The white road to Castle Hakuro" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2><span class="k">入手</span>Download</h2>
+    <p class="lead">Free. No installer, no account. Unzip and play. A controller is recommended; keyboard and mouse work too.</p>
+    <div class="dl">
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.5v7H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>Windows</h3>
+        <p>Windows 10 or 11, 64-bit.</p>
+        <a class="btn primary" data-asset="windows-x64.zip" href="https://github.com/AbdulrahmanXSO25/shadow-veil/releases/latest">Download for Windows <small class="size"></small></a>
+        <ul><li>Unzip, then run <code>ShadowVeil.exe</code>.</li><li>Saves: <code>%APPDATA%\XSO\Shadow Veil</code></li></ul>
+      </div>
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24"><path d="M12 2c-2 0-3.2 1.7-3.2 4 0 1.3.3 2.1-.4 3.3C7.2 11.4 5 13.5 5 16.6c0 .6.1 1.1.3 1.6-.8.4-1.5 1-1.3 1.8.3.9 1.6.8 3 1.2 1.2.4 2 .9 3 .5.5-.2.8-.6 1-1 .3 0 .7.1 1 .1s.7 0 1-.1c.2.4.5.8 1 1 1 .4 1.8-.1 3-.5 1.4-.4 2.7-.3 3-1.2.2-.8-.5-1.4-1.3-1.8.2-.5.3-1 .3-1.6 0-3.1-2.2-5.2-3.4-7.3-.7-1.2-.4-2-.4-3.3C15.2 3.7 14 2 12 2z"/></svg>Linux</h3>
+        <p>Any 64-bit desktop from the last few years. Runs natively on Wayland and X11.</p>
+        <a class="btn primary" data-asset="linux-x64.tar.gz" href="https://github.com/AbdulrahmanXSO25/shadow-veil/releases/latest">Download for Linux <small class="size"></small></a>
+        <ul><li><code>tar xf ShadowVeil-*-linux-x64.tar.gz</code>, then <code>./ShadowVeil/shadow-veil</code></li><li>Saves: <code>~/.local/share/shadow-veil</code></li></ul>
+      </div>
+    </div>
+    <p class="meta" id="release-meta">All releases, checksums and release notes are on <a href="https://github.com/AbdulrahmanXSO25/shadow-veil/releases">GitHub</a>.</p>
+  </div>
+</section>
+
+<section id="controls">
+  <div class="wrap">
+    <h2><span class="k">操作</span>Controls</h2>
+    <p class="lead">Every prompt in the game shows the button for the device you are using.</p>
+    <div class="table-scroll">
+      <table class="controls">
+        <tr><th>Action</th><th>Controller (PlayStation / Xbox)</th><th>Keyboard &amp; mouse</th></tr>
+        <tr><td>Move</td><td>Left stick / D-pad</td><td>WASD or arrows</td></tr>
+        <tr><td>Jump</td><td>✕ / A</td><td>Space</td></tr>
+        <tr><td>Attack</td><td>□ / X</td><td>J or left mouse</td></tr>
+        <tr><td>Deflect</td><td>L1 / LB</td><td>K or right mouse</td></tr>
+        <tr><td>Dash</td><td>○ / B</td><td>L or Shift</td></tr>
+        <tr><td>Grapple</td><td>R1 / RB</td><td>F</td></tr>
+        <tr><td>Art</td><td>△ / Y</td><td>Q</td></tr>
+        <tr><td>Interact</td><td>D-pad up / △</td><td>E or W</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 XSO · Shadow Veil</span>
+    <span>Fonts: Noto Serif (SIL OFL) · Built with SDL3 and FreeType</span>
+  </div>
+</footer>
+
+<dialog id="viewer"><img alt=""></dialog>
+
+<script>
+(() => {
+  const repo = "AbdulrahmanXSO25/shadow-veil";
+  // Point the download buttons straight at the latest release's files; fall back to the release page.
+  fetch(`https://api.github.com/repos/${repo}/releases/latest`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(rel => {
+      document.querySelectorAll("[data-asset]").forEach(a => {
+        const asset = (rel.assets || []).find(x => x.name.endsWith(a.dataset.asset));
+        if (!asset) { a.classList.add("pending"); a.querySelector(".size").textContent = "· coming soon"; return; }
+        a.href = asset.browser_download_url;
+        const s = a.querySelector(".size");
+        if (s) s.textContent = `· ${(asset.size / 1048576).toFixed(0)} MB`;
+      });
+      if (!(rel.assets || []).length) return;   // nothing downloadable in the latest release yet
+      const m = document.getElementById("release-meta");
+      const date = new Date(rel.published_at).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+      m.innerHTML = `Version ${rel.tag_name.replace(/^v/, "")}, released ${date}. <a href="${rel.html_url}">Release notes and checksums</a>.`;
+    })
+    .catch(() => {});
+
+  // Offer the right build in the hero button.
+  const ua = navigator.userAgent;
+  const os = /Windows/.test(ua) ? "for Windows" : /Linux|X11/.test(ua) && !/Android/.test(ua) ? "for Linux" : "";
+  document.getElementById("hero-os").textContent = os;
+
+  const viewer = document.getElementById("viewer");
+  document.querySelectorAll(".gallery img").forEach(img => img.addEventListener("click", () => {
+    viewer.querySelector("img").src = img.src;
+    viewer.querySelector("img").alt = img.alt;
+    viewer.showModal();
+  }));
+  viewer.addEventListener("click", () => viewer.close());
+})();
+</script>
+</body>
+</html>

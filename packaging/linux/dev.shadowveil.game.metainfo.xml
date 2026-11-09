@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.shadowveil.game</id>
+  <name>Shadow Veil</name>
+  <summary>A shinobi's journey through six chapters to the heart of the Veil</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <developer id="dev.shadowveil"><name>XSO</name></developer>
+  <description>
+    <p>Shadow Veil is a hand-crafted 2D action platformer. Deflect, dash, climb and slip through
+    the dark across six chapters, learn five sword stances, and decide what becomes of the Veil.</p>
+  </description>
+  <launchable type="desktop-id">dev.shadowveil.game.desktop</launchable>
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-fantasy">moderate</content_attribute>
+  </content_rating>
+  <supports><control>gamepad</control><control>keyboard</control></supports>
+  <releases><release version="0.9.0" date="2026-11-09"/></releases>
+</component>

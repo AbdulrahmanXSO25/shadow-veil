@@ -53,20 +53,20 @@ struct BgBuilder {
         }
         rect(cx - halfW * 0.45f, y - h - 6, halfW * 0.9f, 6, shade);
     }
-    void pagoda(float cx, float base, float s, World::BgLayer& layer, Rng& rng) {
-        float y = base;
-        float w = 130 * s;
-        for (int tier = 0; tier < 5; tier++) {
-            float bodyH = 46 * s, bodyW = w * 0.62f;
-            rect(cx - bodyW / 2, y - bodyH, bodyW, bodyH);
-            if (rng.chance(0.6f)) layer.windows.push_back({{cx + rng.range(-bodyW * 0.3f, bodyW * 0.3f), y - bodyH * 0.5f}, 8 * s});
-            y -= bodyH;
-            roof(cx, y + 4 * s, w * 0.75f, 22 * s, 14 * s);
-            y -= 22 * s;
-            w *= 0.84f;
+    void watchtower(float cx, float base, float s, World::BgLayer& layer, Rng& rng) {
+        // a fire-watch tower: splayed timber legs, a railed lookout and a small hipped roof
+        float h = 300 * s, w = 70 * s, top = base - h;
+        quad({cx - w, base}, {cx - w + 8 * s, base}, {cx - w * 0.45f + 8 * s, top}, {cx - w * 0.45f, top});
+        quad({cx + w - 8 * s, base}, {cx + w, base}, {cx + w * 0.45f, top}, {cx + w * 0.45f - 8 * s, top});
+        for (int k = 1; k < 4; k++) {
+            float y = base - h * k / 4.f, hw = lerp(w, w * 0.45f, k / 4.f);
+            rect(cx - hw, y - 3 * s, hw * 2, 6 * s);
+            line({cx - hw, y}, {cx + lerp(w, w * 0.45f, (k - 1) / 4.f), base - h * (k - 1) / 4.f}, 3 * s);
         }
-        rect(cx - 2 * s, y - 70 * s, 4 * s, 70 * s);   // sōrin spire
-        for (int k = 0; k < 6; k++) rect(cx - 7 * s, y - 14 * s - k * 9 * s, 14 * s, 3 * s);
+        rect(cx - w * 0.7f, top - 40 * s, w * 1.4f, 40 * s);
+        layer.windows.push_back({{cx, top - 20 * s}, 14 * s});
+        roof(cx, top - 38 * s, w * 0.95f, 34 * s, 10 * s);
+        (void)rng;
     }
     void house(float x, float base, float w, float h, World::BgLayer& layer, Rng& rng, bool lit) {
         rect(x, base - h, w, h);
@@ -129,13 +129,16 @@ struct BgBuilder {
         quad(a + n, b + n, b - n, a - n, shade);
     }
     void gateway(float cx, float base, float s, float shade = 1) {
-        // plain timber gateway used in the village silhouettes
-        float h = 260 * s, w = 220 * s, pw = 16 * s;
-        quad({cx - w * 0.38f - pw, base}, {cx - w * 0.38f + pw * 0.2f, base}, {cx - w * 0.34f + pw * 0.2f, base - h}, {cx - w * 0.34f - pw, base - h}, shade);
-        quad({cx + w * 0.38f - pw * 0.2f, base}, {cx + w * 0.38f + pw, base}, {cx + w * 0.34f + pw, base - h}, {cx + w * 0.34f - pw * 0.2f, base - h}, shade);
-        rect(cx - w * 0.45f, base - h * 0.78f, w * 0.9f, 12 * s, shade);
-        rect(cx - w * 0.5f, base - h, w, 16 * s, shade);
-        rect(cx - w * 0.5f, base - h - 10 * s, w, 6 * s, shade);
+        // a fortified gatehouse: stone footings, heavy timber posts, closed doors and a tiled roof
+        float h = 230 * s, w = 240 * s;
+        quad({cx - w * 0.5f, base}, {cx - w * 0.28f, base}, {cx - w * 0.3f, base - 70 * s}, {cx - w * 0.47f, base - 70 * s}, shade);
+        quad({cx + w * 0.28f, base}, {cx + w * 0.5f, base}, {cx + w * 0.47f, base - 70 * s}, {cx + w * 0.3f, base - 70 * s}, shade);
+        rect(cx - w * 0.44f, base - h, w * 0.12f, h - 60 * s, shade);
+        rect(cx + w * 0.32f, base - h, w * 0.12f, h - 60 * s, shade);
+        rect(cx - w * 0.32f, base - h * 0.92f, w * 0.64f, h * 0.92f, shade * 0.85f);
+        rect(cx - 2 * s, base - h * 0.92f, 4 * s, h * 0.92f, shade * 0.6f);
+        rect(cx - w * 0.5f, base - h - 18 * s, w, 22 * s, shade);
+        roof(cx, base - h - 14 * s, w * 0.7f, 70 * s, 22 * s, shade);
     }
     void castle(float cx, float base, float s, World::BgLayer& layer, Rng& rng) {
         // stone base, then stacked keep with roofs — Castle Hakuro on the far peak
@@ -164,6 +167,52 @@ struct BgBuilder {
             prevL = l; prevR = r; py = y;
         }
         tri({prevL, top}, {prevR, top}, {(prevL + prevR) / 2 + rng.range(-10, 10), top - rng.range(10, 40)}, shade);
+    }
+    // a ridge hanging from above, mirrored (the Mirror Province's upside-down sky-land)
+    void ridgeInv(float x0, float x1, float base, float amp, float freq, int seed, float sharp, float top, float shade = 1) {
+        float step = 24;
+        float prevX = x0, prevY = base + amp * ridgeH(x0, freq, seed, sharp);
+        for (float x = x0 + step; x <= x1 + step; x += step) {
+            float y = base + amp * ridgeH(x, freq, seed, sharp);
+            quad({prevX, top}, {x, top}, {x, y}, {prevX, prevY}, shade);
+            prevX = x; prevY = y;
+        }
+    }
+    // stepped paddy terraces cut into a hillside, each step holding a sheet of water
+    void terraces(float x0, float x1, float base, Rng& rng, World::BgLayer& layer, float s) {
+        float y = base;
+        float l = x0, rr = x1;
+        for (int k = 0; k < 6; k++) {
+            float h = rng.range(26, 40) * s;
+            rect(l, y - h, rr - l, h + 4, 1.0f);
+            // the water's edge catches the sky
+            rect(l, y - h - 2 * s, rr - l, 2 * s, 1.9f, 0.5f);
+            y -= h;
+            l += rng.range(60, 160) * s; rr -= rng.range(60, 160) * s;
+            if (rr - l < 200) break;
+        }
+        (void)layer;
+    }
+    // a crenellated castle curtain wall with towers
+    void wall(float x0, float x1, float base, float h, World::BgLayer& layer, Rng& rng, float shade = 1) {
+        rect(x0, base - h, x1 - x0, h + 2400, shade);
+        for (float x = x0; x < x1; x += 34) rect(x, base - h - 14, 18, 14, shade);
+        for (float x = x0 + rng.range(100, 300); x < x1; x += rng.range(500, 800)) {
+            rect(x - 50, base - h - 90, 100, 90, shade);
+            roof(x, base - h - 86, 80, 40, 12, shade);
+            if (rng.chance(0.6f)) layer.windows.push_back({{x, base - h - 50}, 10});
+        }
+    }
+    // a floating island fragment with roots hanging below
+    void island(Vec2 c, float w, Rng& rng, float shade = 1) {
+        ellipse(c, w * 0.5f, w * 0.08f, shade);
+        tri(c + Vec2{-w * 0.5f, 0}, c + Vec2{w * 0.5f, 0}, c + Vec2{rng.range(-w * 0.1f, w * 0.1f), w * 0.45f}, shade);
+        for (int k = 0; k < 4; k++) line(c + Vec2{rng.range(-w * 0.3f, w * 0.3f), w * 0.05f}, c + Vec2{rng.range(-w * 0.35f, w * 0.35f), w * rng.range(0.3f, 0.7f)}, 2, shade);
+    }
+    // the great loom: warp threads from sky to earth, crossed by a weft
+    void loom(float x0, float x1, float base, float h, Rng& rng, float shade = 1) {
+        for (float x = x0; x < x1; x += rng.range(40, 90)) line({x, base}, {x + rng.range(-30, 30), base - h}, rng.range(1.5f, 4), shade);
+        for (float y = base - h * 0.2f; y > base - h; y -= rng.range(80, 160)) line({x0, y}, {x1, y + rng.range(-40, 40)}, 1.5f, shade * 0.9f);
     }
     void maple(float x, float base, float h, Rng& rng, float shade = 1) {
         Vec2 p{x, base};
@@ -201,13 +250,26 @@ void World::buildBackground() {
             Rng rng(R.seed * 31 + li * 7);
             switch (li) {
             case 0: {
-                float amp = R.style == BgStyle::Grove ? 160 : (R.style == BgStyle::Gate ? 260 : 320);
+                float amp = R.style == BgStyle::Grove ? 160 : (R.style == BgStyle::Gate ? 260 : (R.style == BgStyle::Terrace ? 200 : (R.style == BgStyle::Castle ? 420 : 320)));
+                if (R.style == BgStyle::Loom) {
+                    B.loom(x0, x1, base + 200, 2200, rng, 1.0f);
+                    break;
+                }
                 B.ridge(x0, x1, base, amp, 0.0016f, 11, R.style == BgStyle::Grove ? 0.1f : 0.7f, bottom, 1.0f);
+                if (R.style == BgStyle::Mirror) B.ridgeInv(x0, x1, base - 900, amp, 0.0016f, 11, 0.7f, base - 3000, 1.0f);
                 break;
             }
             case 1: {
                 float amp = R.style == BgStyle::Ravine ? 300 : 170;
                 B.ridge(x0, x1, base + 30, amp, 0.0032f, 23 + (int)ri, 0.4f, bottom, 1.0f);
+                if (R.style == BgStyle::Castle || R.style == BgStyle::Maple) {
+                    // Castle Hakuro looms nearer with every step up the pass
+                    float cx = (x0 + x1) * 0.5f;
+                    float ridgeY = base + 30 - 170 * BgBuilder::ridgeH(cx, 0.0032f, 23 + (int)ri, 0.4f);
+                    B.castle(cx, ridgeY + 6, R.style == BgStyle::Castle ? 1.3f : 0.75f, L, rng);
+                }
+                if (R.style == BgStyle::Mirror || R.style == BgStyle::Loom)
+                    for (float x = x0; x < x1; x += rng.range(300, 600)) B.island({x, base - rng.range(200, 600)}, rng.range(120, 260), rng);
                 if (R.style == BgStyle::Cliff || R.style == BgStyle::Village) {
                     // Castle Hakuro, far away on the ridge: the story's destination
                     float cx = (x0 + x1) * 0.5f + 200;
@@ -231,7 +293,7 @@ void World::buildBackground() {
                 case BgStyle::Village: {
                     if (li == 2) {
                         B.ridge(x0, x1, base + 50, 50, 0.003f, 7, 0.1f, bottom);
-                        B.pagoda((x0 + x1) * 0.5f + rng.range(-200, 200), base + 50, 1.1f, L, rng);
+                        B.watchtower((x0 + x1) * 0.5f + rng.range(-200, 200), base + 50, 1.0f, L, rng);
                         for (float x = x0; x < x1; x += rng.range(140, 260)) B.house(x, base + 60 + rng.range(0, 20), rng.range(90, 160), rng.range(50, 70), L, rng, true);
                     } else if (li == 3) {
                         for (float x = x0; x < x1; x += rng.range(220, 360)) B.house(x, base + 40 + rng.range(-10, 20), rng.range(140, 220), rng.range(80, 110), L, rng, true);
@@ -255,6 +317,60 @@ void World::buildBackground() {
                         if (rng.chance(0.4f)) B.pine(x + 40 * s, base + 120 - h + 10, 140 * s, rng);
                     }
                     if (li == 3) B.rect(x0, base + 100, x1 - x0, 2400);
+                    break;
+                }
+                case BgStyle::Terrace: {
+                    if (li == 2) {
+                        B.terraces(x0, x1, base + 80, rng, L, 1.0f);
+                        for (float x = x0; x < x1; x += rng.range(500, 900)) B.house(x, base + 70, rng.range(90, 140), rng.range(50, 70), L, rng, rng.chance(0.4f));
+                    } else if (li == 3) {
+                        B.rect(x0, base + 40, x1 - x0, 2400);
+                        for (float x = x0; x < x1; x += rng.range(280, 520)) B.pine(x, base + 40, rng.range(180, 280) * s, rng);
+                    } else {
+                        for (float x = x0; x < x1; x += rng.range(160, 300)) B.bamboo(x, base + 80, rng.range(300, 600) * s, rng.range(5, 8) * s, rng);
+                    }
+                    break;
+                }
+                case BgStyle::Maple: {
+                    if (li == 2) {
+                        for (float x = x0; x < x1; x += rng.range(220, 420)) {
+                            float h = rng.range(300, 600);
+                            B.rockPillar(x, base + 120, rng.range(70, 140), h, rng);
+                            B.maple(x + 40, base + 120 - h + 20, 120, rng);
+                        }
+                    } else {
+                        for (float x = x0; x < x1; x += rng.range(160, 320) / density) B.maple(x, base + 40, rng.range(220, 360) * s, rng);
+                        if (li == 3) B.rect(x0, base + 30, x1 - x0, 2400);
+                    }
+                    break;
+                }
+                case BgStyle::Castle: {
+                    if (li == 2) B.wall(x0, x1, base + 20, 150, L, rng);
+                    else if (li == 3) {
+                        for (float x = x0; x < x1; x += rng.range(260, 480)) B.pine(x, base + 30, rng.range(200, 300) * s, rng);
+                        B.rect(x0, base + 30, x1 - x0, 2400);
+                    } else for (float x = x0; x < x1; x += rng.range(500, 900)) B.pine(x, base + 60, rng.range(260, 380) * s, rng);
+                    break;
+                }
+                case BgStyle::Mirror: {
+                    if (li == 2) {
+                        B.ridge(x0, x1, base + 40, 80, 0.004f, 31 + (int)ri, 0.5f, bottom);
+                        B.ridgeInv(x0, x1, base - 700, 80, 0.004f, 31 + (int)ri, 0.5f, base - 2600);
+                    } else {
+                        for (float x = x0; x < x1; x += rng.range(260, 520) / density) {
+                            B.pine(x, base + 40, rng.range(200, 300) * s, rng);
+                            if (li == 3 && rng.chance(0.5f)) B.island({x + 120, base - rng.range(300, 520)}, rng.range(80, 160) * s, rng);
+                        }
+                        if (li == 3) B.rect(x0, base + 30, x1 - x0, 2400);
+                    }
+                    break;
+                }
+                case BgStyle::Loom: {
+                    if (li == 2) B.loom(x0, x1, base + 100, 1600, rng, 1.0f);
+                    else {
+                        for (float x = x0; x < x1; x += rng.range(400, 800) / density) B.island({x, base - rng.range(0, 400)}, rng.range(140, 300) * s, rng);
+                        if (li == 3) B.rect(x0, base + 120, x1 - x0, 2400);
+                    }
                     break;
                 }
                 case BgStyle::Gate: {
@@ -360,7 +476,8 @@ void World::drawTiles(Renderer& r, const Rect& view) {
     Color lip = lerp(palette.ground, palette.nearC, 0.9f);
     Color rim = palette.rim;
     Rect pb = playerBox();
-    auto isSolidVis = [&](int x, int y) { Tile t = level.at(x, y); return t == Tile::Solid || t == Tile::FalseWall || t == Tile::Plank || t == Tile::Wall; };
+    auto isSolidVis = [&](int x, int y) { Tile t = level.at(x, y); return t == Tile::Solid || t == Tile::FalseWall || t == Tile::Plank || t == Tile::Wall || t == Tile::Crumble; };
+    bool snowy = palette.snow > 0.05f;
     Color wood = lerp(ground, rgb(0x2a1a10), 0.45f);
     for (int y = y0; y <= y1; y++)
         for (int x = x0; x <= x1; x++) {
@@ -399,6 +516,50 @@ void World::drawTiles(Renderer& r, const Rect& view) {
                 }
                 if (!isSolidVis(x - 1, y)) r.rect({px - 0.5f, py, 1.4f, TILE}, rim.withA(0.12f * a));
                 if (!isSolidVis(x + 1, y)) r.rect({px + TILE - 1, py, 1.4f, TILE}, rim.withA(0.18f * a));
+                if (snowy && depth == 0 && !isSolidVis(x, y - 1)) {
+                    // a soft cap of snow on every exposed surface
+                    float h = 6 + hashf(x, y * 3) * 4;
+                    r.rect({px - 1, py - h * 0.5f, TILE + 2, h}, rgb(0xe8eef8, 0.92f * a));
+                    r.circle({px + hashf(x * 5, y) * TILE, py - h * 0.4f}, h * 0.7f, rgb(0xe8eef8, 0.92f * a));
+                }
+                break;
+            }
+            case Tile::Crumble: {
+                // weathered slabs held together by roots; they shiver when weight lands on them
+                float shake = 0;
+                for (auto& c : crumbling) if (c.first == y * level.width + x) shake = std::sin(time * 70) * 2;
+                Color slab = lerp(lip, rgb(0x5a3a22), 0.35f);
+                r.rect({px + shake, py, TILE + 0.5f, TILE * 0.7f}, slab);
+                r.line({px + 8 + shake, py + 4}, {px + 20 + shake, py + 20}, 1.5f, ground);
+                r.line({px + 30 + shake, py + 2}, {px + 26 + shake, py + 28}, 1.5f, ground);
+                r.rect({px + shake, py - 1, TILE + 0.5f, 1.6f}, rim.withA(0.35f));
+                for (int k = 0; k < 3; k++) r.line({px + 10 + k * 14.f, py + TILE * 0.7f}, {px + 8 + k * 14.f + hashf(x, k) * 6, py + TILE * 0.95f}, 1.2f, lip);
+                break;
+            }
+            case Tile::CrumbleGone: {
+                // a faint outline promises the ledge will return
+                r.rect({px + 4, py + 2, TILE - 8, 1.2f}, rim.withA(0.12f));
+                break;
+            }
+            case Tile::Bright: case Tile::Hollow: {
+                // Mirror Province: stone that exists in only one of the two layers
+                bool brightTile = t == Tile::Bright;
+                bool real = brightTile ? level.layer == 0 : level.layer == 1;
+                Color tc = brightTile ? rgb(0xe8e0d0) : rgb(0x6a4aa8);
+                if (real) {
+                    r.rect({px, py, TILE + 0.5f, TILE + 0.5f}, lerp(ground, tc, 0.28f));
+                    if (level.at(x, y - 1) != t) r.rect({px, py - 1, TILE + 0.5f, 2}, tc.withA(0.8f));
+                    r.rect({px + 3, py + 3, TILE - 6, 1}, tc.withA(0.15f));
+                } else {
+                    // a ghost: thread outlines only
+                    float pulse = 0.25f + 0.1f * std::sin(time * 2 + x * 0.3f);
+                    r.setBlend(Blend::Additive);
+                    if (level.at(x, y - 1) != t) r.rect({px, py, TILE, 1.2f}, tc.withA(pulse));
+                    if (level.at(x, y + 1) != t) r.rect({px, py + TILE - 1, TILE, 1.2f}, tc.withA(pulse * 0.6f));
+                    if (level.at(x - 1, y) != t) r.rect({px, py, 1.2f, TILE}, tc.withA(pulse * 0.6f));
+                    if (level.at(x + 1, y) != t) r.rect({px + TILE - 1, py, 1.2f, TILE}, tc.withA(pulse * 0.6f));
+                    r.setBlend(Blend::Alpha);
+                }
                 break;
             }
             case Tile::Plank: {
@@ -622,6 +783,59 @@ void World::drawProps(Renderer& r, const Rect& view, bool front) {
             else B.maple(b.x + TILE * 0.5f, b.y, pr.h * TILE, rr);
             Color c = k == "maple" ? lerp(ink, rgb(0x4a070c), 0.55f) : ink;
             for (size_t i = 0; i + 2 < tmp.tris.size(); i += 3) r.tri(tmp.tris[i].p, tmp.tris[i + 1].p, tmp.tris[i + 2].p, c * tmp.tris[i].shade);
+            if (palette.snow > 0.05f && k == "pine") {
+                // snow resting on the needle pads
+                for (size_t i = 0; i + 2 < tmp.tris.size(); i += 3) {
+                    Vec2 top = tmp.tris[i].p;
+                    if (rng.chance(0.06f)) r.circle(top + Vec2{0, -2}, 5 + rng.range(0, 6), rgb(0xe8eef8, 0.8f));
+                }
+            }
+        } else if (k == "boat") {
+            // a flat-bottomed skiff, rocking on the water
+            Vec2 c{b.x + wpx * 0.5f, b.y - TILE * 0.3f + std::sin(time * 1.4f + b.x) * 2};
+            float rot = std::sin(time * 1.1f + b.x) * 0.03f;
+            Vec2 d = rotate({wpx * 0.5f, 0}, rot);
+            Vec2 pts[4] = {c - d + Vec2{-12, -16}, c + d + Vec2{12, -16}, c + d * 0.85f + Vec2{0, 8}, c - d * 0.85f + Vec2{0, 8}};
+            r.polygon(pts, 4, lerp(ink, rgb(0x2a1a10), 0.4f));
+            r.line(pts[0], pts[1], 1.5f, rim.withA(0.3f));
+            if (pr.params.count("pole")) r.line(c + Vec2{wpx * 0.2f, -16}, c + Vec2{wpx * 0.4f, -160}, 3, ink);
+        } else if (k == "paddy") {
+            // rice stalks standing out of the flood
+            for (int i = 0; i < (int)(pr.w * 5); i++) {
+                float x = b.x + rng.range(0, wpx), h = rng.range(16, 34);
+                float sway = std::sin(time * 1.6f + x * 0.05f) * 3;
+                r.line({x, b.y - TILE * 0.35f}, {x + sway, b.y - TILE * 0.35f - h}, 1.4f, lerp(ink, rgb(0x3a4a20), 0.4f));
+            }
+        } else if (k == "stilts") {
+            for (float x = b.x + 6; x < b.x + wpx; x += 40) r.rect({x, b.y - hpx, 7, hpx + TILE}, ink);
+            r.rect({b.x, b.y - hpx, wpx, 6}, ink);
+        } else if (k == "tower") {
+            // a castle corner tower: stone base, white plaster, dark roof
+            float cx = b.x + wpx * 0.5f;
+            r.quad({b.x - 10, b.y}, {b.x + wpx + 10, b.y}, {b.x + wpx - 6, b.y - hpx * 0.4f}, {b.x + 6, b.y - hpx * 0.4f}, lerp(ink, rgb(0x2a2a30), 0.5f));
+            r.rect({b.x + 6, b.y - hpx, wpx - 12, hpx * 0.6f}, lerp(ink, rgb(0xb8bcc8), 0.18f));
+            Vec2 roofPts[4] = {{b.x - 30, b.y - hpx}, {b.x + wpx + 30, b.y - hpx}, {cx + wpx * 0.25f, b.y - hpx - 50}, {cx - wpx * 0.25f, b.y - hpx - 50}};
+            r.polygon(roofPts, 4, ink);
+            if (palette.snow > 0.05f) r.line(roofPts[3], roofPts[2], 6, rgb(0xe8eef8, 0.85f));
+            r.rect({cx - 8, b.y - hpx * 0.75f, 16, 22}, rgb(0x1a1410));
+        } else if (k == "loom") {
+            // a beam of the great loom, threads running up out of sight
+            Color wood = lerp(ink, rgb(0x3a2a1a), 0.5f);
+            r.rect({b.x, b.y - hpx, wpx, 18}, wood);
+            r.rect({b.x, b.y - 18, wpx, 18}, wood);
+            r.setBlend(Blend::Additive);
+            for (float x = b.x + 10; x < b.x + wpx; x += 14) {
+                float w = std::sin(time * 1.5f + x * 0.05f) * 3;
+                r.line({x, b.y - 18}, {x + w, b.y - hpx + 18}, 1, palette.thread.withA(0.35f));
+            }
+            r.setBlend(Blend::Alpha);
+        } else if (k == "thread") {
+            // a single taut thread of the Veil rising into the dark
+            r.setBlend(Blend::Additive);
+            float w = std::sin(time * 2 + b.x) * 4;
+            r.line({b.x + TILE * 0.5f, b.y}, {b.x + TILE * 0.5f + w, b.y - hpx}, 1.6f, palette.thread.withA(0.6f));
+            r.glow({b.x + TILE * 0.5f, b.y - 10}, 30, palette.thread.withA(0.2f));
+            r.setBlend(Blend::Alpha);
         } else if (k == "statue") {
             // a plain stone post
             Vec2 c{b.x + TILE * 0.5f, b.y};
@@ -669,14 +883,24 @@ void World::drawProps(Renderer& r, const Rect& view, bool front) {
             r.rect({c.x - 1.5f, c.y - 12, 3, 8}, ink);
             r.rect({c.x - 10, c.y - 5, 20, 2}, rgb(0xc9a040, 0.8f));
         } else if (k == "gate_arch") {
-            // the Old Gate: a massive vermilion gate frame for the boss arena
+            // the Old Gate: a fortified timber gatehouse with a tiled roof, framing the boss arena
             float cx = b.x + TILE * 0.5f, h = hpx, w = wpx;
-            Color c = lerp(ink, rgb(0x6a0a0e), 0.55f);
-            r.rect({cx - w / 2 - 24, b.y - h, 48, h}, c);
-            r.rect({cx + w / 2 - 24, b.y - h, 48, h}, c);
-            r.rect({cx - w / 2 - 70, b.y - h * 0.82f, w + 140, 26}, c);
-            r.rect({cx - w * 0.5f - 70, b.y - h - 44, w + 140, 44}, c);
-            r.rect({cx - w * 0.5f - 70, b.y - h - 48, w + 140, 6}, rim.withA(0.4f));
+            Color c = lerp(ink, rgb(0x3a1a12), 0.45f);
+            Color stone = lerp(ink, rgb(0x2a2626), 0.5f);
+            for (float sx : {cx - w / 2 - 40, cx + w / 2 - 20}) {
+                r.quad({sx - 18, b.y}, {sx + 78, b.y}, {sx + 66, b.y - 90}, {sx - 6, b.y - 90}, stone);
+                r.rect({sx + 6, b.y - h, 48, h - 80}, c);
+                r.rect({sx + 6, b.y - h, 6, h - 80}, rim.withA(0.12f));
+            }
+            r.rect({cx - w / 2 - 50, b.y - h - 30, w + 100, 34}, c);
+            for (float x = cx - w / 2 - 30; x < cx + w / 2 + 40; x += 64) r.rect({x, b.y - h - 30, 10, 34}, ink);
+            // roof with flared eaves
+            Vec2 roofPts[6] = {{cx - w / 2 - 130, b.y - h - 22}, {cx + w / 2 + 130, b.y - h - 22}, {cx + w / 2 + 70, b.y - h - 70},
+                               {cx + w * 0.18f, b.y - h - 120}, {cx - w * 0.18f, b.y - h - 120}, {cx - w / 2 - 70, b.y - h - 70}};
+            r.polygon(roofPts, 6, ink);
+            r.line(roofPts[0], roofPts[5], 3, rim.withA(0.35f));
+            r.line(roofPts[5], roofPts[4], 3, rim.withA(0.35f));
+            r.line(roofPts[4], roofPts[3], 3, rim.withA(0.35f));
         }
     }
 }
@@ -701,16 +925,19 @@ void World::drawMechs(Renderer& r) {
             break;
         }
         case MechKind::Bell: {
+            // the iron catch: a counterweight hanging from a beam; a thrown star knocks the pin loose
             Vec2 pivot = m.pos + Vec2{0, -TILE * 0.5f};
             r.rect({pivot.x - 50, pivot.y - 8, 100, 10}, ink);
             float a = m.swing;
             auto R = [&](Vec2 v) { return pivot + rotate(v, -a); };
-            Color bronze = lerp(ink, rgb(0x3a3020), 0.6f);
-            Vec2 pts[6] = {R({-10, 4}), R({10, 4}), R({22, 52}), R({26, 64}), R({-26, 64}), R({-22, 52})};
-            r.polygon(pts, 6, bronze);
-            r.line(R({18, 10}), R({24, 60}), 2, rim.withA(0.4f));
-            r.line(R({-24, 46}), R({24, 46}), 2, bronze * 0.6f);
-            if (m.active) { r.setBlend(Blend::Additive); r.glow(R({0, 40}), 60, gold.withA(0.25f + 0.1f * std::sin(time * 3))); r.setBlend(Blend::Alpha); }
+            Color iron = lerp(ink, rgb(0x30343a), 0.6f);
+            r.line(R({0, 0}), R({0, 22}), 3, iron * 0.8f);
+            Vec2 pts[4] = {R({-20, 22}), R({20, 22}), R({24, 66}), R({-24, 66})};
+            r.polygon(pts, 4, iron);
+            r.line(R({-20, 34}), R({20, 34}), 2, iron * 0.6f);
+            r.line(R({-22, 52}), R({22, 52}), 2, iron * 0.6f);
+            r.line(R({18, 24}), R({22, 64}), 2, rim.withA(0.4f));
+            if (!m.active) { r.circle(R({0, 22}), 4, gold); r.setBlend(Blend::Additive); r.glow(R({0, 22}), 26, gold.withA(0.25f + 0.1f * std::sin(time * 3))); r.setBlend(Blend::Alpha); }
             break;
         }
         case MechKind::Rope: {
@@ -800,6 +1027,43 @@ void World::drawMechs(Renderer& r) {
                 Particle q; q.type = PType::Thread; q.pos = c + Vec2{hashf((int)(time * 60), 1) * 80 - 40, -20 - hashf((int)(time * 50), 2) * 100};
                 q.vel = {40, -30}; q.life = q.maxLife = 0.8f; q.size = 1.5f; q.col = teal.withA(0.8f);
                 particles.push_back(q);
+            }
+            break;
+        }
+        case MechKind::Sluice: {
+            // a sluice wheel on a timber post
+            Vec2 c = m.pos + Vec2{0, -70};
+            r.rect({m.pos.x - 5, c.y, 10, 70}, ink);
+            float ang = m.t * PI * 3;
+            r.ring(c, 26, 31, ink);
+            for (int k = 0; k < 6; k++) { Vec2 d = rotate({0, -28}, ang + k * PI / 3); r.line(c, c + d, 3, ink); r.circle(c + d * 1.18f, 4, ink); }
+            r.circle(c, 6, gold.withA(m.active ? 0.3f : 0.8f));
+            r.ring(c, 30, 31.5f, rim.withA(0.35f));
+            if (!m.active) {
+                float a = 0.5f + 0.5f * std::sin(time * 2.4f);
+                r.setBlend(Blend::Additive); r.glow(c, 46, gold.withA(0.15f * a)); r.setBlend(Blend::Alpha);
+            }
+            break;
+        }
+        case MechKind::Beacon: {
+            // a fire-watch brazier on a pole with a hooded lantern that sweeps the ground
+            float H = m.h * TILE;
+            Vec2 top = m.pos + Vec2{0, -H};
+            r.rect({m.pos.x - 4, top.y, 8, H}, ink);
+            r.quad(top + Vec2{-18, 0}, top + Vec2{18, 0}, top + Vec2{12, 16}, top + Vec2{-12, 16}, ink);
+            if (m.active) {
+                float ang = PI / 2 + std::sin(m.timer) * 0.75f;
+                float len = m.range * TILE;
+                Vec2 a = top + Vec2{std::cos(ang - 0.22f), std::sin(ang - 0.22f)} * len;
+                Vec2 b = top + Vec2{std::cos(ang + 0.22f), std::sin(ang + 0.22f)} * len;
+                r.setBlend(Blend::Additive);
+                Color beam = beaconSpotted ? rgb(0xff5a3a) : rgb(0xffc070);
+                r.tri(top, a, b, beam.withA(0.16f), beam.withA(0.0f), beam.withA(0.0f));
+                r.glow(top, 60, beam.withA(0.5f));
+                r.setBlend(Blend::Alpha);
+                drawFlame(r, top, 28, time * 2, (int)m.pos.x & 7);
+            } else {
+                r.circle(top + Vec2{0, -4}, 6, rgb(0x303038));
             }
             break;
         }
@@ -950,61 +1214,230 @@ void World::drawPlayer(Renderer& r, float alpha) {
     drawTrail(r, p.trail, time, lerp(st.rim, Color{1, 1, 1}, 0.4f), 0.14f);
 }
 
+// Each foe reads at a glance from silhouette alone: headgear, cape and weapon carry the identity.
+namespace {
+enum class Hat { Jingasa, Hood, Kabuto, Topknot, Beak, Wolf, Blank, Bare, Old, WideKasa };
+enum class Weapon { Sword, Spear, Bow, Sickle, Gun, Staff, Threads, Hook, Glaive };
+enum class Cape { None, Mino, Feathers, Pelt, Threads, Banner, Robe };
+struct Look { Hat hat; Weapon weapon; Cape cape; uint32_t tint; float tintAmt; uint32_t accent; };
+Look lookOf(EType t) {
+    switch (t) {
+    case EType::Swordsman: return {Hat::Jingasa, Weapon::Sword, Cape::None, 0, 0, 0x3a0c10};
+    case EType::Spearman: return {Hat::Jingasa, Weapon::Spear, Cape::Banner, 0, 0, 0x3a0c10};
+    case EType::Archer: return {Hat::Bare, Weapon::Bow, Cape::None, 0, 0, 0x3a0c10};
+    case EType::Tetsugen: return {Hat::Kabuto, Weapon::Sword, Cape::Banner, 0, 0, 0x3a0c10};
+    case EType::Reaver: return {Hat::Jingasa, Weapon::Sickle, Cape::Mino, 0x2a2416, 0.35f, 0x4a3a1a};
+    case EType::Lurker: return {Hat::Hood, Weapon::Spear, Cape::None, 0x0c2a30, 0.55f, 0x1a4a50};
+    case EType::TideWarden: return {Hat::WideKasa, Weapon::Hook, Cape::Mino, 0x10282c, 0.45f, 0x2a6a7a};
+    case EType::Duelist: return {Hat::Topknot, Weapon::Sword, Cape::None, 0x1a0c0c, 0.3f, 0x8a1a14};
+    case EType::CrowScout: return {Hat::Beak, Weapon::Sword, Cape::Feathers, 0x101014, 0.2f, 0x2a2a34};
+    case EType::CrowKing: return {Hat::Beak, Weapon::Sword, Cape::Feathers, 0x101014, 0.2f, 0xc06a20};
+    case EType::Gunner: return {Hat::Jingasa, Weapon::Gun, Cape::None, 0x1a1a20, 0.3f, 0x3a3a48};
+    case EType::Hakuro: return {Hat::Wolf, Weapon::Sword, Cape::Pelt, 0xc8ccd8, 0.55f, 0xdfe8ff};
+    case EType::HollowBlade: return {Hat::Blank, Weapon::Sword, Cape::Threads, 0x1c1430, 0.6f, 0xb8a0ff};
+    case EType::HollowSnare: return {Hat::Hood, Weapon::Threads, Cape::Threads, 0x1c1430, 0.6f, 0xb8a0ff};
+    case EType::Kagami: return {Hat::Blank, Weapon::Sword, Cape::Robe, 0xd8d0f0, 0.55f, 0xe8dcff};
+    case EType::Sentinel: return {Hat::Kabuto, Weapon::Glaive, Cape::Threads, 0x2a2212, 0.5f, 0xffd27a};
+    case EType::Odaka: return {Hat::Old, Weapon::Staff, Cape::Robe, 0x1a1a24, 0.3f, 0xffd890};
+    default: return {Hat::Jingasa, Weapon::Sword, Cape::None, 0, 0, 0x3a0c10};
+    }
+}
+}
+
+void World::drawHound(Renderer& r, const Enemy& e, float alpha) {
+    Vec2 pos = lerp(e.prevPos, e.pos, alpha);
+    float f = e.facing;
+    float a = e.st == EState::Dead ? clamp01(1 - e.dissolve) : 1.f;
+    Color body = rgb(0x0e0d0c, a);
+    if (e.flash > 0) body = lerp(body, rgb(0x6a6a70, a), e.flash * 0.6f);
+    Color rim = rimAt(pos + Vec2{0, -30}).mulA(a);
+    float speed = std::abs(e.vel.x);
+    float ph = time * (6 + speed * 0.03f) + e.id;
+    float gait = std::min(1.f, speed / 200.f);
+    bool lunge = e.st == EState::Attack, crouch = e.st == EState::Windup, dead = e.st == EState::Dead;
+    float bodyY = pos.y - 30 + (crouch ? 6 : 0) + (dead ? 16 : 0);
+    Vec2 hip{pos.x - f * 22, bodyY}, sh{pos.x + f * 18, bodyY - 4 + (lunge ? -6 : 0)};
+    // legs: two pairs, opposite phase
+    for (int k = 0; k < 4; k++) {
+        bool front = k >= 2;
+        Vec2 root = front ? sh : hip;
+        float off = (k % 2 ? PI : 0) + (front ? PI * 0.5f : 0);
+        float swing = dead ? 0.9f : std::sin(ph + off) * 0.6f * gait;
+        Vec2 knee = root + Vec2{f * std::sin(swing) * 10 + (front ? 0 : -f * 4), 14};
+        Vec2 paw = knee + Vec2{f * std::sin(swing + 0.4f) * 12, dead ? 4.f : 16.f - std::max(0.f, std::cos(ph + off)) * 5 * gait};
+        Color lc = k % 2 ? body * 0.7f : body;
+        r.line(root, knee, 5, lc);
+        r.line(knee, paw, 4, lc);
+    }
+    r.capsule(hip, sh, 12, 13, body);
+    r.line(hip + Vec2{0, -6}, sh + Vec2{0, -8}, 1.2f, rim.mulA(0.5f));
+    // tail
+    Vec2 t0 = hip + Vec2{-f * 8, -4}, t1 = t0 + Vec2{-f * 18, -10 + std::sin(time * 8) * 3};
+    r.line(t0, t1, 4, body);
+    // neck & head with snout and ears
+    Vec2 head = sh + Vec2{f * 16, -14.f + (lunge ? 6.f : 0.f) + (crouch ? 8.f : 0.f)};
+    r.line(sh, head, 9, body);
+    r.circle(head, 9, body);
+    r.quad(head + Vec2{f * 4, -4}, head + Vec2{f * 20, 0}, head + Vec2{f * 20, 5}, head + Vec2{f * 4, 6}, body);
+    r.tri(head + Vec2{-f * 4, -6}, head + Vec2{f * 2, -7}, head + Vec2{-f * 3, -18}, body);
+    // snow-white collar of Castle Hakuro's kennels
+    r.line(sh + Vec2{f * 4, -12}, sh + Vec2{f * 10, 2}, 3, rgb(0xd8dce8, 0.8f * a));
+    if (e.alive()) {
+        Color eyeC = e.awareness >= 1 ? rgb(0xff3a2a) : (e.awareness > 0.3f ? rgb(0xffb040) : rgb(0x000000, 0));
+        if (eyeC.a > 0) {
+            r.setBlend(Blend::Additive);
+            r.circle(head + Vec2{f * 6, -3}, 1.6f, eyeC);
+            r.glow(head + Vec2{f * 6, -3}, 9, eyeC.withA(0.5f));
+            r.setBlend(Blend::Alpha);
+        }
+        if (e.st == EState::Engage && e.awareness < 1 && e.def->sniffs && hashf((int)(time * 4), e.id) > 0.7f)
+            r.circle(head + Vec2{f * 22, 0}, 2, rgb(0xffffff, 0.3f));
+    }
+}
+
 void World::drawEnemy(Renderer& r, const Enemy& e, float alpha) {
     if (e.st == EState::Dead && e.dissolve >= 1) return;
+    if (e.type == EType::Hound) { drawHound(r, e, alpha); return; }
     const EDef& D = *e.def;
+    const Look L = lookOf(e.type);
     Vec2 pos = lerp(e.prevPos, e.pos, alpha);
+    if (e.lurking) {
+        // only a pair of eyes and a ring of ripples betray the lurker
+        float k = 0.5f + 0.5f * std::sin(time * 2 + e.id);
+        int wy = (int)std::floor((pos.y - 40) / TILE);
+        float surface = pos.y - 40;
+        while (wy > 0 && level.waterAt((int)std::floor(pos.x / TILE), wy - 1)) { wy--; surface = wy * (float)TILE; }
+        r.ring({pos.x, surface + 4}, 14 + k * 10, 15.5f + k * 10, rgb(0xb8e8f0, 0.25f * (1 - k)));
+        if (e.awareness > 0.2f) {
+            r.setBlend(Blend::Additive);
+            r.circle({pos.x - 5, surface + 8}, 1.5f, rgb(0xffb040, 0.8f));
+            r.circle({pos.x + 5, surface + 8}, 1.5f, rgb(0xffb040, 0.8f));
+            r.setBlend(Blend::Alpha);
+        }
+        return;
+    }
     Rig rig; rig.scale = D.scale;
-    if (e.type == EType::Tetsugen) { rig.shoulderW = 10; rig.chestR = 12.5f; rig.bladeLen = 92; rig.hipR = 9; }
-    if (e.type == EType::Spearman || e.type == EType::Archer) rig.bladeLen = 0;
+    if (e.type == EType::Tetsugen || e.type == EType::TideWarden || e.type == EType::Sentinel) { rig.shoulderW = 10; rig.chestR = 12.5f; rig.bladeLen = 92; rig.hipR = 9; }
+    if (e.type == EType::Hakuro || e.type == EType::CrowKing) { rig.shoulderW = 8; rig.chestR = 11.5f; rig.bladeLen = 96; }
+    if (e.type == EType::Duelist || e.type == EType::Kagami || e.type == EType::HollowBlade) rig.bladeLen = 84;
+    if (e.type == EType::CrowScout) rig.bladeLen = 44;
+    bool sword = L.weapon == Weapon::Sword;
+    if (!sword) rig.bladeLen = 0;
     Joints j = solve(rig, e.pose, pos, e.facing);
     RenderStyle st;
     st.body = rgb(0x0f0d0c); st.bodyBack = rgb(0x080706);
+    if (L.tintAmt > 0) { st.body = lerp(st.body, rgb(L.tint), L.tintAmt); st.bodyBack = lerp(st.bodyBack, rgb(L.tint), L.tintAmt * 0.7f); }
     st.rim = rimAt(pos + Vec2{0, -50});
     st.lightDir = lightDirFor(palette);
     st.blade = rgb(0xa0a4ac);
+    if (e.type == EType::HollowBlade || e.type == EType::Kagami) st.blade = rgb(0xd8ccff);
     if (e.flash > 0) st.body = lerp(st.body, rgb(0x6a6a70), e.flash * 0.6f);
+    if (e.chill > 0) st.body = lerp(st.body, rgb(0x6a9ab0), 0.35f);
     if (e.st == EState::Dead) st.alpha = clamp01(1 - e.dissolve);
+    bool hollow = e.type == EType::HollowBlade || e.type == EType::HollowSnare;
+    if (hollow) st.alpha *= 0.82f + 0.12f * std::sin(time * 3 + e.id);
     if (settings && settings->highContrast) { st.rimWidth = 3; st.rim = rgb(0xff6a5a); }
     const float s = D.scale;
-    Color lacquer = lerp(st.body, rgb(0x3a0c10), 0.7f).withA(st.alpha);
-    bool burning = e.phase2;
-    // banner on the spearman's back
-    if (e.type == EType::Spearman || e.type == EType::Tetsugen) {
+    Color accent = rgb(L.accent);
+    Color lacquer = lerp(st.body, accent, 0.7f).withA(st.alpha);
+    bool burning = e.phase2 && e.type == EType::Tetsugen;
+    bool empowered = e.phase2 && e.boss && !burning;
+    Color sideCol = st.body.withA(st.alpha);
+    // ---- back layer: banners, capes, wings
+    if (L.cape == Cape::Banner) {
         Vec2 pole0 = j.chest + Vec2{-e.facing * 8 * s, 0}, pole1 = pole0 + Vec2{-e.facing * 4 * s, -54 * s};
-        r.line(pole0, pole1, 2.5f * s, st.body.withA(st.alpha));
-        Cloth c = e.sash;
-        drawClothStrip(r, c, 14 * s, 8 * s, lerp(st.body, rgb(0x2a0a0c), 0.5f).withA(st.alpha), st.rim.mulA(st.alpha * 0.6f), st.lightDir, 1.4f);
+        r.line(pole0, pole1, 2.5f * s, sideCol);
+        drawClothStrip(r, e.sash, 14 * s, 8 * s, lerp(st.body, rgb(0x2a0a0c), 0.5f).withA(st.alpha), st.rim.mulA(st.alpha * 0.6f), st.lightDir, 1.4f);
+    } else if (L.cape == Cape::Mino) {
+        // straw rain-cape: a shaggy cone from the shoulders
+        Vec2 top = j.chest + Vec2{0, -6 * s};
+        for (int k = 0; k < 9; k++) {
+            float u = (k - 4) / 4.f;
+            Vec2 b = j.hip + Vec2{u * 20 * s - e.facing * 4 * s, 16 * s + std::abs(u) * -6 * s + std::sin(time * 3 + k) * 1.5f};
+            r.tri(top + Vec2{u * 6 * s, 0}, top + Vec2{u * 6 * s + 5 * s, 0}, b, lerp(sideCol, rgb(0x4a3a1a, st.alpha), 0.35f));
+        }
+    } else if (L.cape == Cape::Feathers) {
+        // a cloak of black feathers; the Crow King's flares like wings when he leaps
+        float spread = e.type == EType::CrowKing ? (e.vel.y < -100 || e.st == EState::Windup ? 1.f : 0.45f) : 0.3f;
+        for (float side : {-1.f, 1.f}) {
+            Vec2 root = j.shoulderB + Vec2{0, 2 * s};
+            for (int k = 0; k < 6; k++) {
+                float ang = PI * 0.5f + side * (0.25f + k * 0.18f * (0.4f + spread)) - e.facing * 0.2f;
+                float len = (46 + k * 6) * s * (0.6f + spread * 0.6f);
+                Vec2 tip = root + Vec2{std::cos(ang), std::sin(ang)} * len;
+                Vec2 n = (tip - root).norm().perp() * 5 * s;
+                r.quad(root - n * 0.4f, root + n * 0.4f, tip + n * 0.2f, tip - n, sideCol);
+            }
+        }
+    } else if (L.cape == Cape::Pelt) {
+        // a white wolf's pelt over the shoulders, trailing behind
+        drawClothStrip(r, e.sash, 22 * s, 10 * s, rgb(0xe8ecf4, st.alpha * 0.95f), st.rim.mulA(st.alpha * 0.5f), st.lightDir, 1.4f);
+    } else if (L.cape == Cape::Robe) {
+        Vec2 a = j.chest + Vec2{-e.facing * 6 * s, -4 * s};
+        Vec2 b = pos + Vec2{-e.facing * (22 + 3 * std::sin(time * 2)) * s, -2};
+        r.quad(a + Vec2{-6 * s, 0}, a + Vec2{6 * s, 0}, b + Vec2{8 * s, 0}, b + Vec2{-10 * s, 0}, lerp(sideCol, accent.withA(st.alpha), 0.15f));
+    }
+    if (L.cape == Cape::Threads || hollow || e.type == EType::Sentinel) {
+        r.setBlend(Blend::Additive);
+        for (int k = 0; k < 5; k++) {
+            float u = hashf(k, e.id);
+            Vec2 a = lerp(j.hip, j.chest, u) + Vec2{-e.facing * 6 * s, 0};
+            Vec2 b = a + Vec2{-e.facing * (30 + 20 * u) * s, std::sin(time * 2.5f + k) * 10 * s + 10 * s};
+            r.line(a, b, 1.1f, accent.withA(0.35f * st.alpha));
+        }
+        r.setBlend(Blend::Alpha);
     }
     drawHumanoid(r, rig, j, st, [&](GearLayer layer, bool rimPass) {
         Color c = rimPass ? st.rim.mulA(st.alpha) : st.body.withA(st.alpha);
         Vec2 o = rimPass ? st.lightDir * (st.rimWidth * s) : Vec2{0, 0};
         Vec2 side{e.facing, 0};
         if (layer == GearLayer::Head) {
-            if (e.type == EType::Swordsman || e.type == EType::Spearman) {
-                // jingasa: wide shallow conical hat
-                Vec2 hc = j.head + o + Vec2{0, -5 * s};
-                r.tri(hc + Vec2{-21 * s, 4 * s}, hc + Vec2{21 * s, 4 * s}, hc + Vec2{0, -9 * s}, c);
-            } else if (e.type == EType::Archer) {
-                r.circle(j.head + o + Vec2{-e.facing * 3 * s, -2 * s}, 10 * s, c);
-            } else {
-                // kabuto with crescent maedate, wide neck guard
-                Vec2 hc = j.head + o;
+            Vec2 hc = j.head + o;
+            switch (L.hat) {
+            case Hat::Jingasa: r.tri(hc + Vec2{-21 * s, -1 * s}, hc + Vec2{21 * s, -1 * s}, hc + Vec2{0, -14 * s}, c); break;
+            case Hat::WideKasa: r.tri(hc + Vec2{-30 * s, 0}, hc + Vec2{30 * s, 0}, hc + Vec2{0, -16 * s}, c); r.line(hc + Vec2{-30 * s, 0}, hc + Vec2{30 * s, 0}, 2, c); break;
+            case Hat::Hood:
+                r.circle(hc + Vec2{-e.facing * 2 * s, -2 * s}, 12 * s, c);
+                r.quad(hc + Vec2{-e.facing * 4 * s, 4 * s}, hc + Vec2{-e.facing * 12 * s, 2 * s}, hc + Vec2{-e.facing * 16 * s, 18 * s}, hc + Vec2{-e.facing * 2 * s, 14 * s}, c);
+                break;
+            case Hat::Kabuto:
                 r.circle(hc + Vec2{0, -3 * s}, 11 * s, c);
                 r.quad(hc + Vec2{-14 * s, 0}, hc + Vec2{14 * s, 0}, hc + Vec2{18 * s, 10 * s}, hc + Vec2{-18 * s, 10 * s}, c);
-                if (!rimPass) {
-                    Color goldC = rgb(0xc8a040, st.alpha);
-                    r.ring(hc + Vec2{side.x * 4 * s, -16 * s}, 12 * s, 15 * s, goldC, -PI * 0.95f, -PI * 0.05f);
-                }
+                if (!rimPass) r.ring(hc + Vec2{side.x * 4 * s, -16 * s}, 12 * s, 15 * s, (e.type == EType::Sentinel ? accent : rgb(0xc8a040)).withA(st.alpha), -PI * 0.95f, -PI * 0.05f);
+                break;
+            case Hat::Topknot:
+                r.circle(hc + Vec2{-e.facing * 3 * s, -11 * s}, 4 * s, c);
+                r.line(hc + Vec2{-e.facing * 3 * s, -12 * s}, hc + Vec2{e.facing * 4 * s, -15 * s}, 3 * s, c);
+                break;
+            case Hat::Beak:
+                r.circle(hc + Vec2{0, -2 * s}, 11 * s, c);
+                r.tri(hc + Vec2{e.facing * 6 * s, -5 * s}, hc + Vec2{e.facing * 6 * s, 3 * s}, hc + Vec2{e.facing * 24 * s, 2 * s}, c);
+                if (e.type == EType::CrowKing) for (int k = 0; k < 4; k++) r.tri(hc + Vec2{(k - 1.5f) * 5 * s, -10 * s}, hc + Vec2{(k - 1.5f) * 5 * s + 4 * s, -10 * s}, hc + Vec2{(k - 1.5f) * 9 * s - e.facing * 6 * s, -30 * s}, c);
+                break;
+            case Hat::Wolf:
+                // a wolf-head hood: muzzle forward, ears up
+                r.circle(hc + Vec2{0, -4 * s}, 12 * s, c);
+                r.quad(hc + Vec2{e.facing * 4 * s, -12 * s}, hc + Vec2{e.facing * 20 * s, -6 * s}, hc + Vec2{e.facing * 18 * s, -1 * s}, hc + Vec2{e.facing * 4 * s, -3 * s}, c);
+                r.tri(hc + Vec2{-e.facing * 6 * s, -12 * s}, hc + Vec2{0, -13 * s}, hc + Vec2{-e.facing * 5 * s, -26 * s}, c);
+                r.tri(hc + Vec2{e.facing * 2 * s, -14 * s}, hc + Vec2{e.facing * 8 * s, -13 * s}, hc + Vec2{e.facing * 4 * s, -27 * s}, c);
+                break;
+            case Hat::Blank:
+                r.circle(hc + Vec2{0, -1 * s}, 10.5f * s, c);
+                if (!rimPass) r.circle(hc + side * 3 * s, 7.5f * s, rgb(0xf0ecf8, 0.85f * st.alpha));   // a smooth white face-plate
+                break;
+            case Hat::Old:
+                r.circle(hc + Vec2{0, -1 * s}, 10 * s, c);
+                if (!rimPass) r.line(hc + Vec2{-10 * s, -5 * s}, hc + Vec2{10 * s, -5 * s}, 2.5f * s, accent.withA(0.8f * st.alpha));
+                r.tri(hc + Vec2{e.facing * 2 * s, 6 * s}, hc + Vec2{e.facing * 9 * s, 6 * s}, hc + Vec2{e.facing * 4 * s, 22 * s}, rimPass ? c : rgb(0xb8b4ac, st.alpha));   // beard
+                break;
+            case Hat::Bare: r.circle(hc + Vec2{-e.facing * 3 * s, -2 * s}, 10 * s, c); break;
             }
-            if (!rimPass) {
-                // eyes: alert = red, suspicious = amber
+            if (!rimPass && e.alive()) {
                 Color eyeC = e.awareness >= 1 ? rgb(0xff3a2a) : (e.awareness > 0.3f ? rgb(0xffb040) : rgb(0x000000, 0));
-                if (e.type == EType::Tetsugen) {
-                    r.circle(j.head + side * 2 * s, 7 * s, lacquer);  // horned mask
-                    eyeC = burning ? rgb(0xffa040) : rgb(0xff3a2a);
-                }
-                if (eyeC.a > 0 && e.alive()) {
+                if (e.type == EType::Tetsugen) { r.circle(j.head + side * 2 * s, 7 * s, lacquer); eyeC = burning ? rgb(0xffa040) : rgb(0xff3a2a); }
+                if (e.boss && e.type != EType::Tetsugen) eyeC = accent;
+                if (hollow) eyeC = rgb(0xd8c8ff);
+                if (eyeC.a > 0) {
                     r.setBlend(Blend::Additive);
                     Vec2 ep = j.head + side * 5 * s + Vec2{0, -1 * s};
                     r.circle(ep, 1.6f * s, eyeC.withA(st.alpha));
@@ -1014,7 +1447,6 @@ void World::drawEnemy(Renderer& r, const Enemy& e, float alpha) {
             }
         }
         if (layer == GearLayer::Torso && !rimPass) {
-            // lacquered lamellar plates
             Vec2 a = lerp(j.hip, j.chest, 0.3f), b = lerp(j.hip, j.chest, 0.95f);
             r.capsule(a, b, rig.hipR * 0.9f * s, rig.chestR * 0.85f * s, lacquer);
             for (int k = 1; k < 4; k++) {
@@ -1022,14 +1454,12 @@ void World::drawEnemy(Renderer& r, const Enemy& e, float alpha) {
                 Vec2 n = (b - a).norm().perp();
                 r.line(m - n * 9 * s, m + n * 9 * s, 1.2f, st.body.withA(st.alpha * 0.8f));
             }
-            if (e.type == EType::Tetsugen) {
-                // great shoulder plates and skirt
-                for (Vec2 sh : {j.shoulderF, j.shoulderB}) {
-                    Vec2 d = Vec2{0, 1};
-                    r.quad(sh + Vec2{-11 * s, -4 * s}, sh + Vec2{11 * s, -4 * s}, sh + Vec2{13 * s, 20 * s} + d, sh + Vec2{-13 * s, 20 * s} + d, lacquer);
-                }
+            if (e.type == EType::Tetsugen || e.type == EType::TideWarden || e.type == EType::Hakuro || e.type == EType::Sentinel) {
+                for (Vec2 sh : {j.shoulderF, j.shoulderB})
+                    r.quad(sh + Vec2{-11 * s, -4 * s}, sh + Vec2{11 * s, -4 * s}, sh + Vec2{13 * s, 20 * s}, sh + Vec2{-13 * s, 20 * s}, lacquer);
                 r.quad(j.hip + Vec2{-14 * s, -4 * s}, j.hip + Vec2{14 * s, -4 * s}, j.hip + Vec2{18 * s, 22 * s}, j.hip + Vec2{-18 * s, 22 * s}, lacquer);
             }
+            if (e.type == EType::Duelist) r.line(j.hip + Vec2{-10 * s, -2 * s}, j.hip + Vec2{-e.facing * 26 * s, 14 * s + std::sin(time * 4) * 3}, 3 * s, accent.withA(st.alpha));
             if (e.type == EType::Archer) {
                 Vec2 q0 = j.chest + Vec2{-e.facing * 10 * s, -6 * s}, q1 = j.hip + Vec2{-e.facing * 14 * s, 0};
                 r.line(q0, q1, 6 * s, st.body.withA(st.alpha));
@@ -1037,14 +1467,19 @@ void World::drawEnemy(Renderer& r, const Enemy& e, float alpha) {
             }
         }
         if (layer == GearLayer::Weapon) {
-            if (e.type == EType::Spearman) {
-                float a = j.foreArmFAngle + e.pose.sword * e.facing;
-                Vec2 d = dirFromAngle(a);
+            Vec2 d = dirFromAngle(j.foreArmFAngle + e.pose.sword * e.facing);
+            Color dark = st.body.withA(st.alpha), steel = st.blade.withA(st.alpha);
+            switch (L.weapon) {
+            case Weapon::Spear: case Weapon::Glaive: {
                 Vec2 butt = j.handF - d * 70 * s, tip = j.handF + d * 110 * s;
-                r.line(butt, tip, 3 * s, st.body.withA(st.alpha));
-                r.tri(tip + d.perp() * 3.5f * s, tip - d.perp() * 3.5f * s, tip + d * 22 * s, st.blade.withA(st.alpha));
-                r.line(tip, tip + d * 20 * s, 0.8f, Color{1, 1, 1, 0.5f * st.alpha});
-            } else if (e.type == EType::Archer) {
+                r.line(butt, tip, 3 * s, dark);
+                if (L.weapon == Weapon::Glaive) {
+                    Vec2 n = d.perp();
+                    r.quad(tip - n * 3 * s, tip + n * 6 * s, tip + d * 34 * s + n * 4 * s, tip + d * 4 * s - n * 3 * s, accent.withA(st.alpha * 0.9f));
+                } else r.tri(tip + d.perp() * 3.5f * s, tip - d.perp() * 3.5f * s, tip + d * 22 * s, steel);
+                break;
+            }
+            case Weapon::Bow: {
                 Vec2 hand = j.handF;
                 float k = e.st == EState::Windup ? clamp01(e.stT / 0.6f) : 0;
                 Vec2 top = hand + Vec2{-e.facing * 6 * s, -46 * s}, bot = hand + Vec2{-e.facing * 6 * s, 40 * s};
@@ -1053,32 +1488,90 @@ void World::drawEnemy(Renderer& r, const Enemy& e, float alpha) {
                 for (int i = 1; i <= 10; i++) {
                     float t = i / 10.f;
                     Vec2 q = lerp(lerp(top, ctrl, t), lerp(ctrl, bot, t), t);
-                    r.line(prev, q, 2.6f * s, st.body.withA(st.alpha));
+                    r.line(prev, q, 2.6f * s, dark);
                     prev = q;
                 }
                 Vec2 nock = lerp(hand, j.handB, k);
                 r.line(top, nock, 0.8f, rgb(0xb8b0a0, 0.6f * st.alpha));
                 r.line(nock, bot, 0.8f, rgb(0xb8b0a0, 0.6f * st.alpha));
                 if (k > 0) r.line(nock, hand + Vec2{e.facing * 20 * s, 0}, 1.4f, rgb(0xb8b0a0, st.alpha));
-            } else if (burning && !rimPass) {
+                break;
+            }
+            case Weapon::Sickle: {
+                Vec2 end = j.handF + d * 30 * s;
+                r.line(j.handF - d * 6 * s, end, 3 * s, dark);
+                Vec2 n = d.perp() * e.facing;
+                Vec2 m = end + n * -10 * s + d * 4 * s, tip = end + n * -26 * s - d * 8 * s;
+                r.tri(end, m, tip, steel);
+                break;
+            }
+            case Weapon::Hook: {
+                // the Warden's iron boat-hook on a length of chain
+                Vec2 end = j.handF + d * 80 * s;
+                r.line(j.handF - d * 20 * s, end, 4 * s, dark);
+                r.ring(end + d.perp() * e.facing * -8 * s, 8 * s, 11 * s, steel, 0, PI * 1.3f);
+                if (!rimPass) for (int k = 0; k < 5; k++) r.circle(lerp(j.handB, j.hip, k / 5.f) + Vec2{0, 6.f * std::sin(time * 3 + k)}, 2.2f * s, rgb(0x5a6068, st.alpha));
+                break;
+            }
+            case Weapon::Gun: {
+                // matchlock: long barrel along the forearm, a glowing match
+                Vec2 stock = j.handB - d * 10 * s, muzzle = j.handF + d * 74 * s;
+                r.line(stock, muzzle, 3.4f * s, dark);
+                r.line(stock, stock - d * 18 * s + d.perp() * e.facing * 5 * s, 5 * s, dark);
+                if (!rimPass && e.alive()) {
+                    r.setBlend(Blend::Additive);
+                    Vec2 m = j.handF + d * 8 * s;
+                    float fl = 0.6f + 0.4f * std::sin(time * 20 + e.id);
+                    r.glow(m, 8 * s, rgb(0xff8a3a, 0.6f * fl * st.alpha));
+                    r.setBlend(Blend::Alpha);
+                    if (e.st == EState::Windup) {
+                        // the aim line: a thin red warning thread to the target
+                        Vec2 tgt = player.pos + Vec2{0, -50};
+                        r.setBlend(Blend::Additive);
+                        r.line(muzzle, lerp(muzzle, tgt, clamp01(e.stT / 0.6f)), 1.2f, rgb(0xff3a2a, 0.45f * clamp01(e.stT * 3)));
+                        r.setBlend(Blend::Alpha);
+                    }
+                }
+                break;
+            }
+            case Weapon::Staff: {
+                Vec2 a = j.handF - d * 80 * s, b = j.handF + d * 80 * s;
+                r.line(a, b, 3.2f * s, rgb(0x2a1e14, st.alpha));
+                if (!rimPass) { r.setBlend(Blend::Additive); r.glow(b, 10 * s, accent.withA(0.3f * st.alpha)); r.setBlend(Blend::Alpha); }
+                break;
+            }
+            case Weapon::Threads: {
+                if (!rimPass) {
+                    r.setBlend(Blend::Additive);
+                    for (Vec2 h : {j.handF, j.handB})
+                        for (int k = 0; k < 3; k++) r.line(h, h + Vec2{e.facing * (20 + k * 8.f), 14.f * std::sin(time * 3 + k) + k * 6.f} * s, 1, accent.withA(0.6f * st.alpha));
+                    r.setBlend(Blend::Alpha);
+                }
+                break;
+            }
+            case Weapon::Sword: break;
+            }
+            if ((burning || empowered) && sword && !rimPass) {
+                Color gc = burning ? rgb(0xff6a20) : accent;
                 r.setBlend(Blend::Additive);
                 for (int i = 0; i < 6; i++) {
                     Vec2 q = lerp(j.handF, j.swordTip, (i + 1) / 7.f);
-                    r.glow(q, (16 + 6 * std::sin(time * 12 + i)) * s, rgb(0xff6a20, 0.35f));
+                    r.glow(q, (16 + 6 * std::sin(time * 12 + i)) * s, gc.withA(0.3f));
                 }
                 r.setBlend(Blend::Alpha);
             }
         }
-    }, e.type != EType::Spearman && e.type != EType::Archer);
-    Color edge = burning ? rgb(0xff8a3a) : lerp(st.rim, Color{1, 1, 1}, 0.3f);
+    }, sword);
+    Color edge = burning ? rgb(0xff8a3a) : (empowered ? accent : lerp(st.rim, Color{1, 1, 1}, 0.3f));
     drawTrail(r, e.trail, time, edge, 0.12f);
     if (burning && e.alive() && hashf((int)(time * 60), e.id) < 0.5f)
         const_cast<World*>(this)->emit(PType::Ember, lerp(j.handF, j.swordTip, hashf((int)(time * 90), 3)), 1, 80, rgb(0xff8a3a), 3, 0.6f, 1.0f, -PI / 2);
+    if (e.chill > 0) { r.setBlend(Blend::Additive); r.glow(pos + Vec2{0, -e.h() * 0.5f}, 50 * s, rgb(0x9fd8ff, 0.15f)); r.setBlend(Blend::Alpha); }
     // weapon glint telegraph
     if (e.glint > 0) {
         r.setBlend(Blend::Additive);
         Vec2 g = j.swordTip;
-        if (e.type == EType::Spearman) g = j.handF + dirFromAngle(j.foreArmFAngle + e.pose.sword * e.facing) * 120 * s;
+        if (!sword) g = j.handF + dirFromAngle(j.foreArmFAngle + e.pose.sword * e.facing) * (L.weapon == Weapon::Spear || L.weapon == Weapon::Glaive ? 120.f : 40.f) * s;
         float k = e.glint;
         r.line(g + Vec2{-26 * k, 0}, g + Vec2{26 * k, 0}, 2.2f, Color{1, 1, 0.9f, k});
         r.line(g + Vec2{0, -18 * k}, g + Vec2{0, 18 * k}, 2.2f, Color{1, 1, 0.9f, k});
@@ -1089,7 +1582,6 @@ void World::drawEnemy(Renderer& r, const Enemy& e, float alpha) {
 
 Pose npcPose(const std::string& kind, const std::string& name, float t) {
     if (name == "kneel") return P(-4, 30, 2, 8, 30, 32, 24, 36, 60, -150, 54, -146, -20);
-    if (name == "bow") return P(0, 3, 40, 20, 10, 10, 10, 10, 6, -4, -6, -4, 0);
     if (name == "point") return P(0, 2, 2, -6, 92, 0, 10, 20, 6, -4, -8, -4, 0);
     if (name == "staff") return P(0, 2, 4, -2, 30, 50, 10, 20, 8, -4, -8, -4, 0);
     if (kind == "fuki") {
@@ -1108,6 +1600,10 @@ void World::drawNpc(Renderer& r, const Npc& n, float alpha) {
     Rig rig;
     if (n.kind == "fuki") { rig.scale = 0.86f; rig.headR = 9; }
     if (n.kind == "odaka") { rig.scale = 1.12f; rig.shoulderW = 4; rig.bladeLen = 0; }
+    if (n.kind == "hana") { rig.scale = 0.9f; rig.headR = 9.5f; }
+    if (n.kind == "child") { rig.scale = 0.62f; rig.headR = 10; }
+    if (n.kind == "sayo") { rig.scale = 1.0f; }
+    if (n.kind == "refugee" || n.kind == "ferryman" || n.kind == "mason") rig.scale = 0.96f + hashf(n.id.size(), 3) * 0.08f;
     Pose pose = npcPose(n.kind, n.pose, n.t);
     if (n.walking) {
         float ph = n.t * 6;
@@ -1119,6 +1615,21 @@ void World::drawNpc(Renderer& r, const Npc& n, float alpha) {
     st.body = rgb(0x0e0d10); st.bodyBack = rgb(0x070609);
     st.rim = rimAt(pos + Vec2{0, -50}); st.lightDir = lightDirFor(palette); st.alpha = n.alpha;
     const float s = rig.scale;
+    bool sayo = n.kind == "sayo";
+    if (sayo) {
+        // the Weaver: a figure of dark cloth threaded through with gold, the threads running off into the dark
+        st.body = rgb(0x1a1410); st.bodyBack = rgb(0x0e0a08);
+        st.rim = rgb(0xffd890);
+        r.setBlend(Blend::Additive);
+        for (int k = 0; k < 14; k++) {
+            float u = hashf(k, 7), ang = -PI / 2 + (u - 0.5f) * 2.6f;
+            Vec2 a = pos + Vec2{(hashf(k, 3) - 0.5f) * 24, -40 - hashf(k, 5) * 50};
+            Vec2 b = a + Vec2{std::cos(ang), std::sin(ang)} * (300 + 200 * u) + Vec2{std::sin(n.t * 0.7f + k) * 12, 0};
+            r.line(a, b, 1.2f, rgb(0xffd27a, 0.35f * n.alpha));
+        }
+        r.glow(pos + Vec2{0, -60}, 140, rgb(0xffc870, 0.18f * n.alpha));
+        r.setBlend(Blend::Alpha);
+    }
     if (n.kind == "odaka") {
         // straw cloak (mino) drawn as layered fringe
         Cloth c = n.cloth;
@@ -1133,9 +1644,38 @@ void World::drawNpc(Renderer& r, const Npc& n, float alpha) {
                 r.tri(hc + Vec2{-26 * s, 5 * s}, hc + Vec2{26 * s, 5 * s}, hc + Vec2{0, -12 * s}, c);
             } else if (n.kind == "fuki") {
                 r.circle(j.head + o + Vec2{-n.facing * 4 * s, -3 * s}, 9 * s, c);   // hair bun under a shawl
+            } else if (n.kind == "hana") {
+                // a high tail of hair tied with a ribbon
+                Vec2 base = j.head + o + Vec2{-n.facing * 7 * s, -6 * s};
+                r.line(base, base + Vec2{-n.facing * 10 * s, 14 * s + std::sin(n.t * 2) * 2}, 5 * s, c);
+                if (!rimPass) r.circle(base, 3 * s, rgb(0xc0607a, n.alpha));
+            } else if (n.kind == "sayo") {
+                // hair worn long and loose; a band of gold thread across the brow
+                r.quad(j.head + o + Vec2{-n.facing * 6 * s, -6 * s}, j.head + o + Vec2{-n.facing * 12 * s, -2 * s},
+                       j.head + o + Vec2{-n.facing * 16 * s, 34 * s}, j.head + o + Vec2{-n.facing * 6 * s, 30 * s}, c);
+                if (!rimPass) r.line(j.head + Vec2{-9 * s, -5 * s}, j.head + Vec2{9 * s, -5 * s}, 1.6f, rgb(0xffd27a, n.alpha));
+            } else if (n.kind == "refugee" || n.kind == "mason") {
+                Vec2 hc = j.head + o + Vec2{0, -4 * s};
+                r.tri(hc + Vec2{-17 * s, 3 * s}, hc + Vec2{17 * s, 3 * s}, hc + Vec2{0, -9 * s}, c);
+            } else if (n.kind == "ferryman") {
+                Vec2 hc = j.head + o + Vec2{0, -4 * s};
+                r.tri(hc + Vec2{-26 * s, 4 * s}, hc + Vec2{26 * s, 4 * s}, hc + Vec2{0, -10 * s}, c);
+            }
+        }
+        if (layer == GearLayer::Torso && !rimPass) {
+            if (n.kind == "refugee" || n.kind == "mason") {
+                // a bundle carried on the back
+                Vec2 b = j.chest + Vec2{-n.facing * 12 * s, 4 * s};
+                r.circle(b, 11 * s, lerp(st.body, rgb(0x4a3a2a), 0.4f).withA(n.alpha));
+            }
+            if (n.kind == "hana") r.line(j.hip + Vec2{-8 * s, -2 * s}, j.hip + Vec2{8 * s, -2 * s}, 4 * s, rgb(0xc0607a, n.alpha));
+            if (sayo) {
+                Vec2 a = lerp(j.hip, j.chest, 0.2f), b = j.chest;
+                for (int k = 0; k < 4; k++) r.line(lerp(a, b, k / 4.f) + Vec2{-8 * s, 0}, lerp(a, b, k / 4.f) + Vec2{8 * s, 2 * s}, 1, rgb(0xffd27a, 0.7f * n.alpha));
             }
         }
         if (layer == GearLayer::Weapon && !rimPass) {
+            if (n.kind == "ferryman") r.line(j.handF + Vec2{0, -70 * s}, j.handF + Vec2{0, 70 * s}, 2.6f * s, st.body.withA(n.alpha));
             if (n.kind == "odaka") {
                 Vec2 d{0, 1};
                 r.line(j.handF + d * -60 * s, j.handF + d * 60 * s, 3 * s, st.body.withA(n.alpha));
@@ -1200,6 +1740,54 @@ void World::drawProjectiles(Renderer& r, float alpha) {
         case ProjType::FlameWave: {
             drawFlame(r, pos, 110, time * 1.6f, (int)(p.pos.x * 0.1f) & 7);
             drawFlame(r, pos + Vec2{-sign(p.vel.x) * 30, 0}, 80, time * 1.4f, 3);
+            break;
+        }
+        case ProjType::TideWave: {
+            // a curling wall of water
+            float f = sign(p.vel.x);
+            Color deep = palette.water * 2.2f, foam = rgb(0xd8f4f8, 0.85f);
+            for (int k = 0; k < 7; k++) {
+                float u = k / 6.f, h = 90 * std::sin(u * PI * 0.9f + 0.2f);
+                float x = pos.x - f * (60 - u * 70);
+                r.rect({x - 6, pos.y - h, 12, h}, deep.withA(0.75f));
+            }
+            Vec2 crest = pos + Vec2{f * 8, -86};
+            r.ring(crest + Vec2{-f * 14, 14}, 12, 18, foam, f > 0 ? -PI : 0, f > 0 ? 0 : PI);
+            r.setBlend(Blend::Additive); r.glow(pos + Vec2{0, -40}, 70, rgb(0x80e0f0, 0.18f)); r.setBlend(Blend::Alpha);
+            break;
+        }
+        case ProjType::ThreadWave: {
+            r.setBlend(Blend::Additive);
+            for (int k = 0; k < 9; k++) {
+                float u = k / 8.f;
+                Vec2 a{pos.x + std::sin(time * 9 + k) * 10, pos.y};
+                Vec2 b{pos.x - sign(p.vel.x) * 40 + std::sin(time * 7 + k * 2) * 14, pos.y - 30 - u * 70};
+                r.line(a, b, 1.5f, palette.thread.withA(0.8f));
+            }
+            r.glow(pos + Vec2{0, -40}, 60, palette.thread.withA(0.25f));
+            r.setBlend(Blend::Alpha);
+            break;
+        }
+        case ProjType::Kunai: {
+            Vec2 d = p.vel.norm();
+            r.line(pos - d * 14, pos, 2.2f, rgb(0x20202a));
+            r.tri(pos + d.perp() * 3, pos - d.perp() * 3, pos + d * 9, rgb(0xb8c0c8));
+            break;
+        }
+        case ProjType::Ball: {
+            Vec2 d = p.vel.norm();
+            r.setBlend(Blend::Additive);
+            r.line(pos - d * 60, pos, 2.5f, rgb(0xffd080, 0.5f));
+            r.setBlend(Blend::Alpha);
+            r.circle(pos, 3.5f, rgb(0x303038));
+            break;
+        }
+        case ProjType::Snare: {
+            r.setBlend(Blend::Additive);
+            Vec2 d = p.vel.norm();
+            for (int k = 0; k < 3; k++) r.line(pos - d * 40 + d.perp() * (k - 1) * 4.f, pos, 1.2f, rgb(0xd8c8ff, 0.7f));
+            r.ring(pos, 6, 8, rgb(0xd8c8ff, 0.9f));
+            r.setBlend(Blend::Alpha);
             break;
         }
         }
@@ -1284,6 +1872,25 @@ void World::drawParticles(Renderer& r, bool fg) {
             r.setBlend(Blend::Alpha);
             break;
         }
+        case PType::Rain: {
+            Vec2 d = p.vel.norm() * p.size;
+            r.line(p.pos - d, p.pos, 1.3f, p.col);
+            break;
+        }
+        case PType::Snow: r.circle(p.pos, p.size, p.col.withA(p.col.a * std::min(1.f, k * 3))); break;
+        case PType::Splash: r.circle(p.pos, p.size * (0.5f + 0.5f * k), p.col.withA(p.col.a * k)); break;
+        case PType::Feather: {
+            Vec2 d = rotate({7, 0}, p.rot);
+            r.quad(p.pos - d, p.pos + d.perp() * 0.25f, p.pos + d, p.pos - d.perp() * 0.25f, p.col.withA(p.col.a * k));
+            break;
+        }
+        case PType::Frost: {
+            r.setBlend(Blend::Additive);
+            r.line(p.pos + Vec2{-p.size, 0}, p.pos + Vec2{p.size, 0}, 1, p.col.withA(k));
+            r.line(p.pos + Vec2{0, -p.size}, p.pos + Vec2{0, p.size}, 1, p.col.withA(k));
+            r.setBlend(Blend::Alpha);
+            break;
+        }
         }
     }
 }
@@ -1352,6 +1959,114 @@ void World::drawForeground(Renderer& r, Vec2 camPos, float zoom) {
 
 // =================================================================== frame
 
+// =================================================================== water, wind & stance effects
+
+void World::drawWater(Renderer& r, const Rect& view) {
+    int x0 = std::max(0, (int)std::floor(view.x / TILE) - 1), x1 = std::min(level.width - 1, (int)std::floor(view.right() / TILE) + 1);
+    int y0 = std::max(0, (int)std::floor(view.y / TILE) - 1), y1 = std::min(level.height - 1, (int)std::floor(view.bottom() / TILE) + 1);
+    Color body = palette.water;
+    Color hi = lerp(palette.water, palette.rim, 0.6f);
+    for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++) {
+            if (!level.waterAt(x, y)) continue;
+            float px = x * (float)TILE, py = y * (float)TILE;
+            bool surface = !level.waterAt(x, y - 1) && !level.solidAt(x, y - 1);
+            int depth = 0;
+            while (depth < 5 && level.waterAt(x, y - depth - 1)) depth++;
+            float a = 0.5f + 0.08f * depth;
+            if (surface) {
+                // gently moving surface, a bright edge and a sheen band
+                float w0 = std::sin(time * 2.2f + px * 0.05f) * 2.5f, w1 = std::sin(time * 2.2f + (px + TILE) * 0.05f) * 2.5f;
+                r.quad({px, py + 6 + w0}, {px + TILE + 0.5f, py + 6 + w1}, {px + TILE + 0.5f, py + TILE + 0.5f}, {px, py + TILE + 0.5f}, body.withA(a));
+                r.line({px, py + 6 + w0}, {px + TILE + 0.5f, py + 6 + w1}, 1.6f, hi.withA(0.7f));
+                r.setBlend(Blend::Additive);
+                r.rectGrad({px, py + 6, TILE + 0.5f, 18}, hi.withA(0.12f), hi.withA(0));
+                if (palette.rain > 0.05f && hashf(x, (int)(time * 6)) > 0.8f) {
+                    float k = std::fmod(time * 6, 1.f);
+                    r.ring({px + hashf(x * 3, (int)(time * 6)) * TILE, py + 7}, 2 + k * 9, 3 + k * 9, hi.withA(0.4f * (1 - k)));
+                }
+                r.setBlend(Blend::Alpha);
+            } else r.rect({px, py, TILE + 0.5f, TILE + 0.5f}, body.withA(a));
+            // slow caustic light
+            if (depth < 3 && hashf(x, y) > 0.5f) {
+                r.setBlend(Blend::Additive);
+                float k = 0.5f + 0.5f * std::sin(time * 1.3f + x * 1.7f + y);
+                r.line({px + 6, py + 20 + k * 10}, {px + TILE - 8, py + 26 - k * 6}, 1, hi.withA(0.08f));
+                r.setBlend(Blend::Alpha);
+            }
+        }
+}
+
+void World::drawUpdrafts(Renderer& r, const Rect& view) {
+    int x0 = std::max(0, (int)std::floor(view.x / TILE) - 1), x1 = std::min(level.width - 1, (int)std::floor(view.right() / TILE) + 1);
+    int y0 = std::max(0, (int)std::floor(view.y / TILE) - 1), y1 = std::min(level.height - 1, (int)std::floor(view.bottom() / TILE) + 1);
+    r.setBlend(Blend::Additive);
+    Color c = lerp(palette.rim, rgb(0xffffff), 0.4f);
+    for (int x = x0; x <= x1; x++)
+        for (int y = y0; y <= y1; y++) {
+            if (!level.updraftAt(x, y)) continue;
+            float px = x * (float)TILE, py = y * (float)TILE;
+            for (int k = 0; k < 3; k++) {
+                float u = hashf(x * 7 + k, y);
+                float yy = py + TILE - std::fmod(time * (160 + u * 120) + u * TILE, (float)TILE);
+                float xx = px + 6 + u * (TILE - 12) + std::sin(time * 3 + u * 9) * 3;
+                r.line({xx, yy}, {xx, yy - 14}, 1.2f, c.withA(0.25f));
+            }
+            if (!level.updraftAt(x, y + 1)) {
+                // a vent of stirred leaves at the column's foot
+                r.glow({px + TILE / 2, py + TILE}, 40, c.withA(0.08f));
+            }
+        }
+    r.setBlend(Blend::Alpha);
+}
+
+void World::drawEffects(Renderer& r) {
+    // thunder stance bolts
+    r.setBlend(Blend::Additive);
+    for (auto& b : bolts) {
+        float k = clamp01(b.life / 0.35f);
+        Vec2 prev = b.from;
+        int seg = 9;
+        for (int i = 1; i <= seg; i++) {
+            float t = i / (float)seg;
+            Vec2 q = lerp(b.from, b.to, t);
+            if (i < seg) q.x += (hashf(b.seed + i, (int)(b.life * 30)) - 0.5f) * 60;
+            r.line(prev, q, 3.5f * k, rgb(0xe8f6ff, k));
+            r.line(prev, q, 10 * k, rgb(0x80c0ff, 0.25f * k));
+            prev = q;
+        }
+        r.glow(b.to, 90 * k, rgb(0xa8d8ff, 0.5f * k));
+    }
+    r.setBlend(Blend::Alpha);
+    // Mirror Step decoy
+    if (decoyT > 0) {
+        float a = clamp01(decoyT / 1.6f);
+        RenderStyle gs;
+        gs.body = rgb(0xe8dcff, 0.35f * a); gs.bodyBack = gs.body; gs.rim = rgb(0xffffff, 0.5f * a); gs.blade = gs.rim;
+        Joints j = solve(Rig{}, npcPose("", "", time), decoyPos, player.facing);
+        r.setBlend(Blend::Additive);
+        drawHumanoid(r, Rig{}, j, gs, nullptr, true);
+        r.glow(decoyPos + Vec2{0, -50}, 70, rgb(0xe8dcff, 0.15f * a));
+        r.setBlend(Blend::Alpha);
+    }
+    // the Unravelling: everything behind the edge is coming apart
+    if (chaseActive) {
+        Vec2 vs = r.viewSize();
+        float top = cam.pos.y - vs.y, bot = cam.pos.y + vs.y;
+        r.rect({chaseX - 4000, top, 4000, bot - top}, rgb(0x08060c, 0.94f));
+        r.rectGradH({chaseX - 160, top, 180, bot - top}, rgb(0x08060c, 0.0f), rgb(0x08060c, 0.9f));
+        r.setBlend(Blend::Additive);
+        for (int k = 0; k < 40; k++) {
+            float y = top + hashf(k, 3) * (bot - top);
+            float len = 40 + hashf(k, 9) * 120;
+            float x = chaseX + std::sin(time * 4 + k) * 16;
+            r.line({x, y}, {x - len, y + std::sin(time * 3 + k) * 20}, 1.2f, palette.thread.withA(0.6f));
+        }
+        r.glow({chaseX, player.pos.y - 60}, 260, palette.thread.withA(0.12f));
+        r.setBlend(Blend::Alpha);
+    }
+}
+
 void World::render(Renderer& r, float alpha) {
     Vec2 camPos = lerp(cam.prevPos, cam.pos, alpha) + cam.shakeOffset;
     float zoom = cam.zoom * kBaseZoom;
@@ -1372,6 +2087,9 @@ void World::render(Renderer& r, float alpha) {
     for (auto& e : enemies) drawEnemy(r, e, alpha);
     if (player.state != PState::Dead || player.deathT < 10) drawPlayer(r, alpha);
     drawProjectiles(r, alpha);
+    drawWater(r, view);
+    drawUpdrafts(r, view);
+    drawEffects(r);
     drawGrass(r, view, true);
     drawProps(r, view, true);
     drawParticles(r, true);

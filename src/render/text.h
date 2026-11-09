@@ -1,6 +1,7 @@
 #pragma once
 #include "core/math.h"
-#include <GL/gl.h>
+#include <string>
+#include "render/gl.h"
 #include <string>
 #include <vector>
 #include <unordered_map>

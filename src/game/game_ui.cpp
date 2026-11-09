@@ -63,8 +63,10 @@ void Game::render(float alpha) {
     case Screen::ChapterEnd: drawChapterEnd(); break;
     case Screen::Credits: drawCredits(); break;
     case Screen::HowTo: drawHowTo(); break;
+    case Screen::Chapters: drawChapters(); break;
     case Screen::Confirm:
         if (m_prevScreen == Screen::Title || m_confirmBack == Screen::Title) drawTitle();
+        if (m_confirmBack == Screen::Chapters) drawChapters();
         drawConfirm();
         break;
     }
@@ -140,12 +142,35 @@ std::string Game::hintText(const std::string& id) const {
     if (id == "shuriken") return "{Shuriken} throws a shuriken. {Aim} aims it. It interrupts archers.";
     if (id == "ember") return "{Art} Ember Art: spend Sparks for a burning crescent. Sparks come from hits and deflects.";
     if (id == "heal") return "{Heal} drinks from the healing gourd.";
-    if (id == "bell") return "The bell hangs beyond any blade… but not beyond a thrown star. {Shuriken}";
+    if (id == "bell") return "The iron catch hangs beyond any blade… but not beyond a thrown star. {Shuriken}";
     if (id == "rope") return "A single rope holds the log bridge upright. Cut it with {Attack}.";
     if (id == "camp") return "{Interact} at a camp to rest, learn arts and forge. Resting returns your foes.";
     if (id == "menu") return "{Menu} opens equipment.  {Pause} pauses.";
     if (id == "archer") return "Archers' arrows can be deflected straight back at them with {Guard}.";
     if (id == "gale") return "Gale Stance: swifter steps; finishing cuts loose wind blades. Wind arts await at camps.";
+    // ---- Chapters II–VI
+    if (id == "swim") return "In water, {Jump} strokes upward. At the surface, {Jump} climbs out. {Down} dives.";
+    if (id == "lurker") return "Ripples on still water: something waits beneath. Approach with {Down} held, or strike first.";
+    if (id == "sluice") return "{Interact} turns a sluice wheel. Opening a sluice can drain a flooded path.";
+    if (id == "trial") return "A trial stone. {Interact} to begin: defeat every foe before time runs out to awaken a Stance.";
+    if (id == "tidewave") return "危 A tide wave can't be guarded. Jump it or Veil-Step {Dash} through it.";
+    if (id == "flooded") return "The arena is flooding: you move slower in the water. Fight from the dry ground.";
+    if (id == "stillwater") return "Stillwater Stance: a perfect Deflect chills the attacker. Chilled foes are slow and their posture cannot recover.";
+    if (id == "updraft") return "Rising wind carries you up. Steer out of it with {Move}; hold {Down} to sink.";
+    if (id == "crumble") return "Weathered ledges give way a moment after you land. Keep moving. They return.";
+    if (id == "duelist") return "Ridge duelists hold a high guard and answer with a fast draw-cut. Watch for the glint, deflect it, then punish.";
+    if (id == "crow") return "Crow scouts leap high and throw kunai fans. Deflect the knives, then press in.";
+    if (id == "thunder") return "Thunder Stance: an Execution calls lightning down on up to three nearby foes.";
+    if (id == "beacon") return "A fire-watch beacon. If its light finds you, the whole garrison comes. Douse it with {Shuriken}.";
+    if (id == "hound") return "Hounds track by scent: tall grass will not hide you from one. Stay well away, or strike first.";
+    if (id == "gunner") return "危 A gunner's shot can't be guarded. When the red aim-line appears, Veil-Step {Dash} or break line of sight.";
+    if (id == "shadow") return "Shadow Stance: hold {Down} and stay still to fade into shadow. Cloaked, you cannot be seen.";
+    if (id == "layers") return "Veil-Step {Dash} to cross between the Bright and the Hollow. Stone that is only an outline becomes real on the other side.";
+    if (id == "snare") return "Hollow threads bind you on contact. Mash {Attack} or {Jump} to tear free, or Deflect them.";
+    if (id == "mirror") return "Mirror Stance: each Veil-Step leaves an afterimage that draws foes' attention and absorbs one shot.";
+    if (id == "chase") return "The Veil is coming apart behind you. Run!";
+    if (id == "sentinel") return "Thread Sentinels are slow and heavy. Their low sweeps are perilous: jump them.";
+    if (id == "summon") return "The White Wolf calls his hounds. Thin the pack, or press the lord before they arrive.";
     return id;
 }
 
@@ -330,10 +355,20 @@ void Game::drawDialogue() {
         r.textured(r.brushTex(), true, {cx - W / 2 - 30, y - 40, W + 60, h + 20}, {0, 0, 1, 1}, col::ink.withA(0.9f));
         // speaker plate
         std::string sp = v.speaker;
-        std::string kanji = sp == "REI" ? "玲" : (sp == "ODAKA" ? "師" : (sp == "FUKI" ? "婆" : (sp == "TETSU" ? "鉄" : (sp == "SOLDIER" ? "兵" : "声"))));
-        Color sealC = sp == "REI" ? col::crimson : (sp == "TETSUGEN" ? rgb(0x5a5a62) : (sp == "FUKI" ? rgb(0x8a6a2a) : rgb(0x3a4a7a)));
+        struct Who { const char* id; const char* kanji; const char* name; uint32_t seal; };
+        static const Who kWho[] = {
+            {"REI", "玲", "Rei", 0xb3202e}, {"ODAKA", "師", "Odaka", 0x3a4a7a}, {"FUKI", "婆", "Fuki", 0x8a6a2a},
+            {"TETSU", "鉄", "Tetsu", 0x5a5a62}, {"SOLDIER", "兵", "Soldier", 0x3a4a7a}, {"HANA", "花", "Hana", 0xc0607a},
+            {"SAYO", "織", "Sayo", 0xc8a040}, {"FUNAKI", "潮", "Funaki", 0x2a6a7a}, {"KARASU", "烏", "Karasu", 0x2a2a34},
+            {"HAKURO", "白", "Hakuro", 0x8a94a8}, {"KAGAMI", "鏡", "Kagami", 0x6a5a9a}, {"FERRYMAN", "渡", "Ferryman", 0x3a5a5a},
+            {"EXILE", "民", "Exile", 0x4a4a5a}, {"CAPTAIN", "将", "Captain", 0x6a3a2a},
+        };
+        const Who* who = nullptr;
+        for (auto& k : kWho) if (sp == k.id) who = &k;
+        std::string kanji = who ? who->kanji : "声";
+        Color sealC = who ? rgb(who->seal) : rgb(0x3a4a7a);
         drawSeal({cx - W / 2 + 40, y - 6}, 50, kanji, sealC);
-        std::string name = sp == "REI" ? "Rei" : (sp == "ODAKA" ? "Odaka" : (sp == "FUKI" ? "Fuki" : (sp == "TETSU" ? "Tetsu" : (sp == "SOLDIER" ? "Soldier" : sp))));
+        std::string name = who ? who->name : sp;
         T.draw(r, Font::Bold, 24 * sc, {cx - W / 2 + 80, y + 2}, name, col::gold, Align::Left, 2);
         // typewriter reveal across wrapped lines
         std::string shown = revealed(v.text);
@@ -361,6 +396,22 @@ void Game::drawDialogue() {
         float lw = 260 * spread;
         r.rect({cx - lw, 622, lw * 2, 1.5f}, col::crimson.withA(a));
     }
+    if (!v.choices.empty()) {
+        // a decision: prompt above, options stacked, locked ones greyed with their reason implied
+        float y = 470 - v.choices.size() * 34;
+        r.rect({0, y - 90, r.uiWidth(), 140.f + v.choices.size() * 70}, col::ink.withA(0.72f));
+        if (!v.choicePrompt.empty()) T.draw(r, Font::Italic, 34 * sc, {cx, y - 40}, v.choicePrompt, col::paper, Align::Center);
+        for (size_t i = 0; i < v.choices.size(); i++) {
+            bool sel = (int)i == v.choiceSel, locked = v.choiceLocked[i];
+            float yy = y + 30 + i * 70;
+            if (sel) {
+                r.textured(r.brushTex(), true, {cx - 380, yy - 8, 760, 58}, {0, 0, 1, 1}, col::crimson.withA(0.55f));
+                T.draw(r, Font::Body, 26, {cx - 340 + std::sin(m_time * 6) * 3, yy + 6}, "›", col::gold, Align::Left);
+            }
+            Color c = locked ? col::paperDim.withA(0.35f) : (sel ? col::paper : col::paperDim);
+            T.draw(r, Font::Bold, 28 * sc, {cx, yy + 4}, locked ? v.choices[i] + "  (sealed)" : v.choices[i], c, Align::Center, 1);
+        }
+    }
     if (m_cut.active() && m_in->held(Act::Pause)) {
         drawRich(r, *m_in, Font::Body, 18, {r.uiWidth() - 40, 1050}, "Hold {Pause} to skip…", col::paperDim, Align::Right);
     }
@@ -385,15 +436,19 @@ void Game::drawTitle() {
     drawSeal({x + 54, 590}, 50, "玲", col::crimson.withA(a));
     T.draw(r, Font::Bold, 66, {x + 150, 300}, "SHADOW", col::paper.withA(a), Align::Left, 18);
     T.draw(r, Font::Bold, 66, {x + 150, 380}, "VEIL", col::paper.withA(a), Align::Left, 18);
-    T.draw(r, Font::Italic, 22, {x + 154, 424}, "Chapter I — The Ashen Grove", col::paperDim.withA(a), Align::Left, 2);
+    {
+        // the subtitle follows the journey: the chapter your save is in
+        T.draw(r, Font::Italic, 22, {x + 154, 424}, m_titleSub, col::paperDim.withA(a), Align::Left, 2);
+    }
     r.rect({x + 154, 444, 300 * a, 1.5f}, col::crimson.withA(a));
     std::vector<std::string> items;
     if (hasSaveGame()) items.push_back("Continue");
     items.push_back("New Game");
     if (m_profile.ngPlusUnlocked) items.push_back("New Game+");
+    if (m_profile.chaptersCleared >= 1) items.push_back("Chapters");
     for (auto s : {"How to Play", "Settings", "Achievements", "Credits", "Quit"}) items.push_back(s);
     if (m_screen == Screen::Title) drawMenuList(items, m_sel, {x + 160, 540}, 30);
-    T.draw(r, Font::Body, 16, {W - 40, 1050}, "v" SV_VERSION " · vertical slice", col::muted.withA(a), Align::Right);
+    T.draw(r, Font::Body, 16, {W - 40, 1050}, "v" SV_VERSION, col::muted.withA(a), Align::Right);
     drawRich(r, *m_in, Font::Body, 17, {40, 1050}, "{Up}{Down} choose     {Confirm} select     {Cancel} back", col::paperDim.withA(a));
 }
 
@@ -522,22 +577,22 @@ void Game::drawSkills() {
         bool sealed = b == 3 && !m_save.has("gale");
         T.draw(r, Font::Bold, 26, {cx, 250}, branchName(b), sealed ? col::muted : (b == 3 ? rgb(0x9ff0e0) : col::paperDim), Align::Center, 4);
         if (sealed) T.draw(r, Font::Italic, 16, {cx, 276}, "sealed — awaken a Stance", col::muted, Align::Center);
-        r.rect({cx - 1, 300, 2, 420}, col::paperDim.withA(0.2f));
+        r.rect({cx - 1, 300, 2, 450}, col::paperDim.withA(0.2f));
         for (auto& d : skillDefs()) {
             if (d.branch != b) continue;
-            Vec2 c{cx, 330 + d.tier * 170.f};
+            Vec2 c{cx, 330 + d.tier * 142.f};
             bool learned = m_save.skills.count(d.id) > 0;
             bool on = m_col == b && m_sel == d.tier;
             bool avail = canLearn(m_save, d);
             if (on) { focus = &d; r.setBlend(Blend::Additive); r.glow(c, 110, col::crimson.withA(0.4f)); r.setBlend(Blend::Alpha); }
-            r.circle(c, 46, col::ink);
-            r.ring(c, 44, 48, learned ? col::gold : (avail ? col::paper.withA(0.7f) : col::muted));
-            T.draw(r, Font::Kanji, 42, c + Vec2{0, 15}, d.kanji, learned ? col::gold : (avail ? col::paper : col::muted), Align::Center);
-            T.draw(r, on ? Font::Bold : Font::Body, 19, c + Vec2{0, 80}, d.name, on ? col::paper : col::paperDim, Align::Center);
+            r.circle(c, 42, col::ink);
+            r.ring(c, 40, 44, learned ? col::gold : (avail ? col::paper.withA(0.7f) : col::muted));
+            T.draw(r, Font::Kanji, 38, c + Vec2{0, 14}, d.kanji, learned ? col::gold : (avail ? col::paper : col::muted), Align::Center);
+            T.draw(r, on ? Font::Bold : Font::Body, 19, c + Vec2{0, 70}, d.name, on ? col::paper : col::paperDim, Align::Center);
         }
     }
     if (focus) {
-        float y = 900;
+        float y = 930;
         T.draw(r, Font::Body, 24, {W / 2, y}, focus->desc, col::paper, Align::Center);
         std::string why;
         bool ok = canLearn(m_save, *focus, &why);
@@ -552,16 +607,32 @@ void Game::drawCollection() {
     int found = 0;
     for (auto& l : loreDefs()) if (m_save.has("lore:" + l.id)) found++;
     drawHeader("巻", "Collection", strfmt("Ink Scrolls %d / %zu   ·   Resin Beads %d", found, loreDefs().size(), m_save.beads));
-    auto& defs = loreDefs();
-    for (size_t i = 0; i < defs.size(); i++) {
-        bool has = m_save.has("lore:" + defs[i].id);
+    // chapter tabs
+    int ch = m_col + 1;
+    auto& chs = chapterDefs();
+    float tx = 130;
+    for (auto& c : chs) {
+        bool on = c.number == ch;
+        int got = 0, tot = 0;
+        for (auto& l : loreDefs()) if (l.chapter == c.number) { tot++; if (m_save.has("lore:" + l.id)) got++; }
+        std::string lab = strfmt("%s  %d/%d", c.numeral.c_str(), got, tot);
+        float w = T.measure(Font::Body, 20, lab) + 40;
+        if (on) r.textured(r.brushTex(), true, {tx - 14, 216, w, 42}, {0, 0, 1, 1}, col::crimson.withA(0.75f));
+        T.draw(r, on ? Font::Bold : Font::Body, 20, {tx + 6, 244}, lab, on ? col::paper : col::paperDim);
+        tx += w + 16;
+    }
+    drawRich(r, *m_in, Font::Body, 16, {tx + 20, 244}, "{TabPrev}{TabNext}", col::paperDim);
+    std::vector<const LoreDef*> list;
+    for (auto& l : loreDefs()) if (l.chapter == ch) list.push_back(&l);
+    for (size_t i = 0; i < list.size(); i++) {
+        bool has = m_save.has("lore:" + list[i]->id);
         bool on = (int)i == m_sel;
-        Vec2 p{130, 290 + i * 60.f};
+        Vec2 p{130, 330 + i * 60.f};
         if (on) r.textured(r.brushTex(), true, {p.x - 40, p.y - 38, 560, 54}, {0, 0, 1, 1}, col::crimson.withA(0.85f));
-        T.draw(r, on ? Font::Bold : Font::Body, 24, p, has ? defs[i].title : "? ? ?", has ? col::paper : col::muted);
+        T.draw(r, on ? Font::Bold : Font::Body, 24, p, has ? list[i]->title : "? ? ?", has ? col::paper : col::muted);
     }
     // materials
-    float my = 290 + defs.size() * 60 + 60;
+    float my = 330 + 5 * 60 + 60;
     T.draw(r, Font::Bold, 22, {130, my}, "Materials", col::paperDim, Align::Left, 2);
     int k = 0;
     for (auto& [id, n] : m_save.inventory) {
@@ -571,12 +642,11 @@ void Game::drawCollection() {
         k++;
     }
     if (k == 0) T.draw(r, Font::Italic, 20, {130, my + 40}, "None yet.", col::muted);
-    if (m_sel < (int)defs.size() && m_save.has("lore:" + defs[m_sel].id)) {
-        float rx = std::max(760.f, r.uiWidth() * 0.48f);
-        float pw = std::min(760.f, r.uiWidth() - rx - 80);
+    if (m_sel < (int)list.size() && m_save.has("lore:" + list[m_sel]->id)) {
+        float rx = 760, pw = std::min(900.f, r.uiWidth() - rx - 100);
         r.rect({rx - 30, 250, pw + 60, 640}, rgb(0xe8dcc0, 0.92f));
-        T.draw(r, Font::Bold, 30, {rx, 310}, defs[m_sel].title, col::ink);
-        auto lines = T.wrap(Font::Italic, 24, defs[m_sel].text, pw);
+        T.draw(r, Font::Bold, 30, {rx, 310}, list[m_sel]->title, col::ink);
+        auto lines = T.wrap(Font::Italic, 24, list[m_sel]->text, pw);
         for (size_t i = 0; i < lines.size(); i++) T.draw(r, Font::Italic, 24, {rx, 370 + i * 36.f}, lines[i], rgb(0x2a2420));
         drawSeal({rx + pw - 10, 840}, 50, "墨", col::crimson);
     }
@@ -705,43 +775,71 @@ void Game::drawChapterEnd() {
     float t = m_screenT;
     float a = ease::outCubic(clamp01(t / 2));
     float cx = r.uiWidth() / 2;
+    const EndCard& E = m_end;
     r.rect({0, 0, r.uiWidth(), 1080}, col::ink.withA(0.9f * a));
-    T.draw(r, Font::Kanji, 96, {cx, 250}, "第一章 終", col::paper.withA(a), Align::Center, 10);
-    T.draw(r, Font::Body, 28, {cx, 310}, "End of Chapter I — The Ashen Grove", col::paperDim.withA(a), Align::Center, 3);
-    int found = 0;
-    for (auto& l : loreDefs()) if (m_save.has("lore:" + l.id)) found++;
-    int mins = (int)(m_save.playTime / 60), secs = (int)m_save.playTime % 60;
-    std::vector<std::pair<std::string, std::string>> rows = {
-        {"Time", strfmt("%d:%02d", mins, secs)}, {"Foes felled", strfmt("%d", m_save.counter("kills"))},
-        {"Deflections", strfmt("%d", m_save.counter("deflects"))}, {"Executions", strfmt("%d", m_save.counter("executions"))},
-        {"Stealth kills", strfmt("%d", m_save.counter("stealthKills"))}, {"Deaths", strfmt("%d", m_save.counter("deaths"))},
-        {"Ink Scrolls", strfmt("%d / %zu", found, loreDefs().size())},
-    };
-    for (size_t i = 0; i < rows.size(); i++) {
+    T.draw(r, Font::Kanji, 96, {cx, 250}, E.numeral + " 終", col::paper.withA(a), Align::Center, 10);
+    std::string head = E.final ? "The End — " + E.title : strfmt("End of Chapter %d — %s", E.number, E.title.c_str());
+    T.draw(r, Font::Body, 28, {cx, 310}, head, col::paperDim.withA(a), Align::Center, 3);
+    if (E.final && E.ending > 0) {
+        static const char* names[] = {"", "Ending: Kept", "Ending: Unbound", "Ending: The Second Way"};
+        T.draw(r, Font::Bold, 24, {cx, 350}, names[E.ending], col::gold.withA(a), Align::Center, 4);
+    }
+    for (size_t i = 0; i < E.rows.size(); i++) {
         float ra = clamp01((t - 0.8f - i * 0.15f) * 3);
-        T.draw(r, Font::Body, 24, {cx - 20, 400 + i * 40.f}, rows[i].first, col::paperDim.withA(ra), Align::Right);
-        T.draw(r, Font::Bold, 24, {cx + 20, 400 + i * 40.f}, rows[i].second, col::paper.withA(ra));
+        T.draw(r, Font::Body, 24, {cx - 20, 400 + i * 40.f}, E.rows[i].first, col::paperDim.withA(ra), Align::Right);
+        T.draw(r, Font::Bold, 24, {cx + 20, 400 + i * 40.f}, E.rows[i].second, col::paper.withA(ra));
     }
     {
-        ChapterResult res = scoreChapter(m_save);
+        const ChapterResult& res = E.res;
         float ga = clamp01((t - 2.0f) * 2);
         float gp = 1 + 0.4f * (1 - ease::outBack(clamp01((t - 2.0f) * 2)));
         T.draw(r, Font::Bold, 110 * gp, {cx + 470, 560}, res.grade, (res.grade[0] == 'S' ? col::gold : col::paper).withA(ga), Align::Center);
         T.draw(r, Font::Body, 22, {cx + 470, 600}, strfmt("Score %d", res.score), col::paperDim.withA(ga), Align::Center);
-        bool record = res.score >= m_profile.bestScore && res.score > 0;
+        bool record = res.score > E.prevBest && res.score > 0;
         if (record) T.draw(r, Font::Bold, 20, {cx + 470, 634}, "NEW RECORD", col::crimson.withA(ga * (0.6f + 0.4f * std::sin(m_time * 6))), Align::Center, 4);
-        else T.draw(r, Font::Body, 18, {cx + 470, 634}, strfmt("Best %d (%s)", m_profile.bestScore, m_profile.bestGrade.c_str()), col::paperDim.withA(ga), Align::Center);
+        else T.draw(r, Font::Body, 18, {cx + 470, 634}, strfmt("Best %d (%s)", E.prevBest, E.prevGrade.c_str()), col::paperDim.withA(ga), Align::Center);
         T.draw(r, Font::Body, 18, {cx + 470, 664}, strfmt("Highest Kage Rank: %s", World::rankLetter(m_save.counter("maxRank"))), col::paperDim.withA(ga), Align::Center);
     }
     float ba = clamp01(t - 2.5f);
-    T.draw(r, Font::Italic, 22, {cx, 730}, "Next: Chapter II — The Drowned Terrace (in development)", col::gold.withA(ba), Align::Center);
-    T.draw(r, Font::Body, 20, {cx, 770}, "New Game+ unlocked: keep your gear and skills; foes grow stronger.", col::paperDim.withA(ba), Align::Center);
-    std::vector<std::string> items = {"Begin New Game+", "Return to Title"};
+    if (!E.final) T.draw(r, Font::Italic, 22, {cx, 730}, "Next: " + E.nextTitle, col::gold.withA(ba), Align::Center);
+    else T.draw(r, Font::Italic, 22, {cx, 730}, "Thank you for walking the whole thread.", col::gold.withA(ba), Align::Center);
+    T.draw(r, Font::Body, 20, {cx, 770}, E.final ? "New Game+ and Chapter select are open from the title screen."
+                                                 : "Your journey is saved. Chapters can be replayed from the title screen.", col::paperDim.withA(ba), Align::Center);
+    std::vector<std::string> items = {E.final ? "Roll Credits" : "Continue", "Return to Title"};
     for (int i = 0; i < 2; i++) {
         Vec2 p{cx, 860 + i * 56.f};
         if (m_sel == i) r.textured(r.brushTex(), true, {p.x - 200, p.y - 36, 400, 50}, {0, 0, 1, 1}, col::crimson.withA(0.9f * ba));
         T.draw(r, Font::Bold, 26, p, items[i], (m_sel == i ? col::paper : col::paperDim).withA(ba), Align::Center);
     }
+}
+
+void Game::drawChapters() {
+    Renderer& r = *m_r;
+    TextSystem& T = r.text();
+    r.rect({0, 0, r.uiWidth(), 1080}, col::ink.withA(0.9f));
+    drawHeader("章", "Chapters", "Replay any chapter you have reached");
+    float W = r.uiWidth();
+    auto& defs = chapterDefs();
+    for (size_t i = 0; i < defs.size(); i++) {
+        const ChapterDef& c = defs[i];
+        bool open = c.number <= m_profile.chaptersCleared + 1;
+        bool on = (int)i == m_sel;
+        Vec2 p{180, 290 + i * 104.f};
+        if (on) r.textured(r.brushTex(), true, {p.x - 60, p.y - 52, W - 240, 92}, {0, 0, 1, 1}, col::crimson.withA(0.75f));
+        T.draw(r, Font::Kanji, 34, p + Vec2{0, -2}, c.numeral, (open ? col::paper : col::muted).withA(on ? 1.f : 0.8f));
+        T.draw(r, on ? Font::Bold : Font::Body, 28, p + Vec2{190, -8}, open ? c.title : "Sealed", open ? col::paper : col::muted);
+        if (open) {
+            std::string rec = "Not yet cleared";
+            auto it = m_profile.chapterBest.find(c.level);
+            if (it != m_profile.chapterBest.end()) {
+                float tm = m_profile.chapterTime.count(c.level) ? m_profile.chapterTime.at(c.level) : 0;
+                rec = strfmt("Best %d  (%s)   ·   Fastest %d:%02d", it->second, m_profile.chapterGrade.count(c.level) ? m_profile.chapterGrade.at(c.level).c_str() : "-", (int)(tm / 60), (int)tm % 60);
+            }
+            T.draw(r, Font::Body, 19, p + Vec2{190, 24}, rec, col::paperDim);
+        }
+        T.draw(r, Font::Kanji, 30, {W - 180, p.y}, c.kanji, (open ? col::paperDim : col::muted).withA(0.6f), Align::Right);
+    }
+    drawRich(r, *m_in, Font::Body, 18, {W / 2, 1040}, "{Confirm} play     {Cancel} back", col::paperDim, Align::Center);
 }
 
 void Game::drawHowTo() {
@@ -810,16 +908,19 @@ void Game::drawHowTo() {
 void Game::drawCredits() {
     Renderer& r = *m_r;
     TextSystem& T = r.text();
-    r.rect({0, 0, r.uiWidth(), 1080}, col::ink.withA(0.92f));
+    r.rect({0, 0, r.uiWidth(), 1080}, col::ink.withA(0.94f));
     float cx = r.uiWidth() / 2;
     const char* lines[] = {
-        "SHADOW VEIL", "", "A vertical slice", "",
-        "Design, code, art direction, music & sound", "All procedurally generated at runtime", "",
-        "Built with", "SDL3 · OpenGL · FreeType · C++20", "",
+        "SHADOW VEIL", "",
+        "Rei  ·  Odaka Sen  ·  Sayo  ·  Hana  ·  Fuki", "Tetsu  ·  Funaki  ·  Karasu  ·  Lord Hakuro  ·  Kagami", "",
+        "Design, code, art direction, voice score & sound", "All drawn and synthesised at runtime — no samples, no instruments", "",
+        "Built with", "SDL3 · OpenGL · FreeType · zlib · C++20", "",
         "Typography", "Noto Serif & Noto Serif CJK (SIL Open Font License)", "",
         "Thank you for playing.",
     };
-    float y = 220;
+    // a slow scroll after the finale, a still page from the title
+    bool roll = m_prevScreen == Screen::ChapterEnd;
+    float y = roll ? 1100 - std::min(m_screenT * 40.f, 880.f) : 200;
     for (auto* l : lines) {
         bool head = std::string(l) == "SHADOW VEIL";
         T.draw(r, head ? Font::Bold : Font::Body, head ? 48 : 24, {cx, y}, l, head ? col::paper : col::paperDim, Align::Center, head ? 12 : 1);

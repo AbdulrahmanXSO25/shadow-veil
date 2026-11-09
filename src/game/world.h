@@ -36,7 +36,7 @@ enum class HitResult { None, Hit, Blocked, Deflected, Dodged, Killed, Broken };
 
 // ------------------------------------------------------------------ effects
 
-enum class PType : uint8_t { Spark, Ink, Ember, Ash, Leaf, Petal, Firefly, Smoke, Dust, Flash, Mist, Thread };
+enum class PType : uint8_t { Spark, Ink, Ember, Ash, Leaf, Petal, Firefly, Smoke, Dust, Flash, Mist, Thread, Rain, Snow, Splash, Feather, Frost };
 
 struct Particle {
     Vec2 pos, vel;
@@ -108,11 +108,28 @@ struct Player {
     std::string lockedPose;            // cutscene-driven pose
     float hurtFlash = 0;
     float deathT = 0;
+    // environment
+    bool inWater = false, headUnder = false, inUpdraft = false;
+    float strokeCd = 0;
+    float crumbleT = 0;
+    // stances
+    float stillT = 0;          // Shadow Stance: crouched stillness builds into a cloak
+    bool cloaked = false;
+    float snared = 0;          // bound by a Hollow thread
 };
 
 // ------------------------------------------------------------------ enemies
 
-enum class EType { Swordsman, Spearman, Archer, Tetsugen };
+enum class EType {
+    Swordsman, Spearman, Archer, Tetsugen,          // I
+    Reaver, Lurker, TideWarden,                     // II
+    Duelist, CrowScout, CrowKing,                   // III
+    Hound, Gunner, Hakuro,                          // IV
+    HollowBlade, HollowSnare, Kagami,               // V
+    Sentinel, Odaka,                                // VI
+    Count
+};
+EType etypeByName(const std::string& n, bool* ok = nullptr);
 enum class EState { Patrol, Suspicious, Search, Engage, Windup, Attack, Recover, Guarding, Stunned, Broken, BeingKilled, Dead, Kneel, Idle };
 
 struct EAttack {
@@ -128,7 +145,16 @@ struct EAttack {
     bool projectile = false;
     bool phase2 = false;
     bool grab = false;
-    int poseSet = 0;   // which key poses to use (0 horizontal, 1 overhead, 2 thrust, 3 sweep, 4 bow, 5 kick, 6 wave)
+    int poseSet = 0;   // which key poses to use (0 horizontal, 1 overhead, 2 thrust, 3 sweep, 4 bow, 5 kick, 6 wave, 7 aim)
+    // special behaviour
+    int proj = 0;      // projectile kind: 1 arrow, 2 flame wave, 3 tide wave, 4 kunai fan, 5 musket ball, 6 thread snare, 7 thread wave
+    int projCount = 1;
+    float hop = 0;     // leaps into the air as the blow starts
+    float dive = 0;    // drives straight down (aerial follow-up)
+    bool blink = false;// steps through the Veil to appear behind the target as the wind-up starts
+    bool summon = false;
+    bool ambush = false;
+    int minPhase = 1;
 };
 
 struct EDef {
@@ -139,6 +165,15 @@ struct EDef {
     int deathblows = 1;
     int essence = 20, mon = 10;
     std::vector<EAttack> attacks;
+    // bosses and specials
+    bool boss = false;
+    bool spared = false;               // yields instead of dying on the final deathblow
+    std::string flag, achievement, reward;
+    bool canGuard = true;
+    bool sniffs = false;               // hounds find you in grass and shadow
+    bool ranged = false;               // keeps distance; attack 0 is the shot, attack 1 the close-range answer
+    float bodyW = 0, bodyH = 0;        // hitbox override (hounds)
+    Color riseColor{1.0f, 0.48f, 0.16f}; // colour of the rise between deathblows
 };
 const EDef& enemyDef(EType t);
 
@@ -170,20 +205,26 @@ struct Enemy {
     float hpScale = 1, dmgScale = 1;
     bool countedDead = false;
     bool sleeping = false;
+    bool lurking = false;              // submerged, waiting to ambush
+    bool summoned = false;
+    float chill = 0;                   // Stillwater: slowed and unable to recover posture
+    int phase = 1;
+    bool yielded = false;
+    float summonCd = 0;                // seconds until the next summon is allowed
     Pose pose, fromPose;
     float blend = 1;
     float walkPhase = 0;
     Cloth sash;
     std::deque<TrailSample> trail;
     bool alive() const { return st != EState::Dead && st != EState::BeingKilled; }
-    float w() const { return 30 * def->scale; }
-    float h() const { return 84 * def->scale; }
+    float w() const { return def->bodyW > 0 ? def->bodyW : 30 * def->scale; }
+    float h() const { return def->bodyH > 0 ? def->bodyH : 84 * def->scale; }
     Rect box() const { return {pos.x - w() / 2, pos.y - h(), w(), h()}; }
 };
 
 // ------------------------------------------------------------------ projectiles, pickups, mechanisms
 
-enum class ProjType { Shuriken, Arrow, Ember, FlameWave, Gale };
+enum class ProjType { Shuriken, Arrow, Ember, FlameWave, Gale, TideWave, Kunai, Ball, Snare, ThreadWave };
 struct Projectile {
     ProjType type;
     Vec2 pos, prevPos, vel;
@@ -203,7 +244,7 @@ struct Pickup {
     bool taken = false;
 };
 
-enum class MechKind { Gate, Bell, Rope, Bridge, Chest, Scroll, Shrine, Examine, Npc, Trial };
+enum class MechKind { Gate, Bell, Rope, Bridge, Chest, Scroll, Shrine, Examine, Npc, Trial, Sluice, Drain, Beacon };
 struct Mechanism {
     MechKind kind;
     std::string id, link, item, text, spawnId, name;
@@ -213,6 +254,8 @@ struct Mechanism {
     bool active = false;         // opened/rung/cut/dropped/collected
     bool solid = false;
     float swing = 0, swingVel = 0;
+    float timer = 0, range = 6, speed = 1;   // drains, beacons
+    Rect area;                               // drain region (world px)
     Rect solidRect() const;
 };
 
@@ -296,7 +339,39 @@ struct World {
     void updateTrial(float dt);
     int trialRemaining() const;
     bool hasGale() const { return save && save->has("gale"); }
+    bool hasStance(const char* f) const { return save && save->has(f); }
     void spawnGaleBlade(float dmgScale);
+
+    // stances & arts earned in later chapters
+    void thunderStrike(Vec2 at);
+    struct Bolt { Vec2 from, to; float life; int seed; };
+    std::vector<Bolt> bolts;
+    Vec2 decoyPos; float decoyT = 0;        // Mirror Step afterimage that draws attacks
+
+    // Mirror Province layers
+    float layerBlend = 0;
+    int layerFlips = 0;
+    bool tryFlipLayer();
+
+    // environment
+    std::vector<std::pair<int, float>> crumbling;   // tile index, seconds until it re-forms
+    void updateEnvironment(float dt);
+    void resetEnvironment();
+    void floodRect(const Rect& area, int topRow);
+    struct FloodJob { Rect area; int row; float t; bool fill; };
+    std::vector<FloodJob> floods;
+    float spottedT = 0;                      // a beacon's light found you
+    bool beaconSpotted = false;
+
+    // the unravelling (Chapter VI chase)
+    bool chaseActive = false;
+    float chaseX = 0, chaseSpeed = 0;
+    bool chaseHit = false;
+
+    // bosses
+    std::vector<Enemy> pendingSpawns;
+    Enemy makeEnemy(EType t, Vec2 pos, float facing);
+    std::string chapterFlagPrefix;           // e.g. "c2" — scopes scroll achievements
 
     bool init(const std::string& levelPath, SaveData* save, const Settings* settings, Audio* audio, Input* input, std::string& err);
     void spawnFromLevel();
@@ -364,6 +439,10 @@ struct World {
     void drawProjectiles(Renderer& r, float alpha);
     void drawForeground(Renderer& r, Vec2 camPos, float zoom);
     void drawGrass(Renderer& r, const Rect& view, bool front);
+    void drawWater(Renderer& r, const Rect& view);
+    void drawUpdrafts(Renderer& r, const Rect& view);
+    void drawHound(Renderer& r, const Enemy& e, float alpha);
+    void drawEffects(Renderer& r);
     Color rimAt(Vec2 p) const;
     void buildBackground();
 

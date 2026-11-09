@@ -44,12 +44,26 @@ const std::vector<RecipeDef>& recipeDefs();
 struct AchievementDef { std::string id, name, desc; bool hidden = false; };
 const std::vector<AchievementDef>& achievementDefs();
 
-struct LoreDef { std::string id, title, text; };
+struct LoreDef { std::string id, title, text; int chapter = 1; };
 const std::vector<LoreDef>& loreDefs();
 const LoreDef* findLore(const std::string& id);
 
+// The six chapters, in order. `level` is the level id stored in saves.
+struct ChapterDef {
+    int number;                  // 1..6
+    std::string level, levelPath, scriptPath;
+    std::string title, kanji, numeral;   // "The Drowned Terrace", "水没段", "第二章"
+    std::string stance;          // flag the chapter's trial awakens ("" if none)
+    std::string bossFlag;        // set when the chapter's champion falls
+    std::string prefix;          // spawn/trigger id prefix ("ch2")
+};
+const std::vector<ChapterDef>& chapterDefs();
+const ChapterDef* findChapter(const std::string& level);
+const ChapterDef& chapterOf(const std::string& level);   // falls back to Chapter I
+int loreCountForChapter(int chapter);
+
 constexpr int kEssencePerPoint = 100;
-constexpr int kMaxBladeLevel = 3;
+constexpr int kMaxBladeLevel = 6;
 
 struct SaveData {
     int version = 1;
@@ -93,11 +107,19 @@ struct Profile {
     int bestScore = 0;
     std::string bestGrade;
     int bestTrialMs = 0;
+    std::map<std::string, int> chapterBest;          // level id -> best score
+    std::map<std::string, std::string> chapterGrade; // level id -> grade of that best
+    std::map<std::string, float> chapterTime;        // level id -> fastest clear (s)
+    std::set<std::string> endings;                   // "1".."3"
 };
 
 // Chapter scoring for the competitive layer: score, letter grade.
 struct ChapterResult { int score = 0; std::string grade; };
 ChapterResult scoreChapter(const SaveData& s);
+// Remember where the counters stood when a chapter began, so each chapter is scored on its own.
+void markChapterStart(SaveData& s);
+// Point a save at the start of a chapter; clears that chapter's local progress so it can be replayed.
+void beginChapter(SaveData& s, const ChapterDef& c, bool replay);
 
 struct Settings {
     float master = 0.8f, music = 0.6f, sfx = 0.9f;

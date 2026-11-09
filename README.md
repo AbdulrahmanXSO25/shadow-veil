@@ -2,38 +2,58 @@
 
 [![CI](https://github.com/AbdulrahmanXSO25/shadow-veil/actions/workflows/ci.yml/badge.svg)](https://github.com/AbdulrahmanXSO25/shadow-veil/actions/workflows/ci.yml)
 
-A cinematic 2D ninja action game for Linux, written in C++20 with SDL3 and OpenGL. All art, animation,
-music and sound are generated at runtime from code. Nothing is sampled or sprite-based.
+A cinematic 2D shinobi action game for **Windows and Linux**, written in C++20 with SDL3 and OpenGL 3.3. All art,
+animation, voice-and-wind score and sound are generated at runtime from code. Nothing is sampled or sprite-based.
 
-**Status:** this is a vertical slice. *Chapter I: The Ashen Grove* is complete and playable from start to
-finish (10 handcrafted rooms, a two-phase boss, cinematics, progression and records). Chapters II–V are designed
-but not yet built; see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Download:** [abdulrahmanxso25.github.io/shadow-veil](https://abdulrahmanxso25.github.io/shadow-veil/) ·
+[GitHub Releases](https://github.com/AbdulrahmanXSO25/shadow-veil/releases/latest)
 
-Design bible: [`docs/DESIGN_BIBLE.md`](docs/DESIGN_BIBLE.md) · Level format: [`data/levels/README.md`](data/levels/README.md)
+**Status (v0.9.0, release candidate):** the full campaign is playable: six chapters, six champions (five of whom
+can be spared), five stances, 25 ink scrolls and three endings. See [`CHANGELOG.md`](CHANGELOG.md) and the honest
+list of what is still untested in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+Design bible: [`docs/DESIGN_BIBLE.md`](docs/DESIGN_BIBLE.md) · Level format: [`data/levels/README.md`](data/levels/README.md) ·
+Steam: [`steam/README.md`](steam/README.md)
 
 ---
 
-## Build & run (Arch Linux, Wayland)
+## Build & run
 
+### Linux (Wayland or X11)
 ```sh
-sudo pacman -S --needed sdl3 freetype2 zlib mesa cmake ninja gcc   # all present on a typical desktop install
+sudo pacman -S --needed sdl3 freetype2 zlib mesa cmake ninja gcc     # Arch; other distros: the -dev equivalents
 cmake -S . -B build -G Ninja
 cmake --build build
 ./build/shadow_veil
 ```
-
 * The game runs **natively on Wayland**. XWayland is the automatic fallback, and `--x11` forces it.
-* Saves, settings and the records profile live in `$XDG_DATA_HOME/shadow-veil/` (usually `~/.local/share/shadow-veil/`).
-* `cmake --install build --prefix ~/.local` installs the binary and its content to `share/shadow-veil`.
+* Saves, settings, records and `shadow-veil.log` live in `$XDG_DATA_HOME/shadow-veil/` (usually `~/.local/share/shadow-veil/`).
+
+### Windows
+* **MSVC** (Visual Studio 2022, "x64 Native Tools" prompt): `cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build`.
+  SDL3, FreeType and zlib are fetched at pinned versions and linked statically.
+* **Cross-compile from Linux** with MinGW-w64: `tools/package/build-windows.sh` (add `SV_WINE_TESTS=1` to run the
+  test suite under Wine).
+* Saves and the log live in `%APPDATA%\XSO\Shadow Veil\`.
+
+### Release packages
+| Script | Output |
+|---|---|
+| `tools/package/build-windows.sh` | `dist/ShadowVeil-<v>-windows-x64.zip`: one static `ShadowVeil.exe` with `data/` and `assets/` |
+| `tools/package/build-linux.sh` | `dist/ShadowVeil-<v>-linux-x64.tar.gz`: SDL3/FreeType/libstdc++ linked statically; needs only glibc and libGL |
+| `tools/package/publish-site.sh` | Publishes `site/` to the `gh-pages` branch (the website) |
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds and tests both packages in CI.
 
 ### Command line
 | Flag | Purpose |
 |---|---|
 | `--fullscreen`, `--size WxH` | Window mode. **F11** toggles fullscreen in-game; **F12** saves a screenshot. |
 | `--render-size WxH` | Render at a fixed internal resolution, scaled to the window. |
-| `--play`, `--fresh`, `--start <room\|spawn-id>` | Skip the title / ignore the save / start at a room (development). |
+| `--play`, `--fresh`, `--chapter <1-6>`, `--start <room\|spawn-id>` | Skip the title / ignore the save / start in a chapter or room (development). |
 | `--autoplay <script>` | Drive input from a script and take screenshots (automated play-testing). |
 | `--user-dir <dir>` | Use a separate save directory. |
+| `--export-achievements <file.csv>` | Write the achievement list for store back-ends and exit. |
 | `--stats` | Print FPS, CPU and GPU frame times every 5 s. |
 
 ---
@@ -77,36 +97,39 @@ Controller-specific features:
 
 ---
 
-## What's in the slice
-* **Story:** cold open, 10 rooms with authored set pieces, NPC Fuki, the Tetsu duel, and the Odaka revelation.
-* **Combat:**
-  * posture, deflects, perilous attacks, executions, stealth kills, ember projectiles, wind blades, shuriken
-  * three enemy types with sight cones, alert propagation and attack tokens
-  * a two-phase boss with a flame phase
-* **Traversal:** variable jump, coyote time and input buffering, wall-slide and wall-jump, air-dash, and a pendulum grapple.
-* **Progression:**
-  * 2 blades, 3 garbs, 2 masks, 4 tokens, 3 socketable gems
-  * a 12-skill tree in 4 branches, a forge with 6 recipes and materials
-  * resin beads, 5 lore scrolls, 21 achievements, New Game+
-* **Competition:** Kage Rank, chapter score and grade (C → S+), a personal-best score, the trial time record, and a speedrun achievement.
-* **Presentation:**
-  * colour script blended per room, procedural parallax worlds, rim-lit silhouettes, verlet cloth
-  * HDR bloom and grading, letterboxed in-engine cinematics, a generative score that reacts to combat
-* **Accessibility:** shake scale, flash reduction, deflect-window assist, game speed 60–100 %, hold/toggle guard, subtitle size, high-contrast foes, ink/petal effects, hint toggle.
+## The campaign
+| Chapter | Place | New ground | Champion | Stance |
+|---|---|---|---|---|
+| I | The Ashen Grove | grapple, wall-jumps, stealth in grass | Tetsu | Gale |
+| II | The Drowned Terrace | swimming, lurkers, sluice puzzles, a flooding arena | Funaki, the Tide Warden | Stillwater |
+| III | Crimson Maple Pass | rising winds, crumbling ledges, duelists, crow scouts | Karasu, the Crow King | Thunder |
+| IV | Castle Hakuro | beacon light, hounds, gunners, an unseen crossing, a rescue | Lord Hakuro | Shadow |
+| V | The Mirror Province | two layers of the world, stepped between with a dash | Kagami of the Hollow | Mirror |
+| VI | The Heart of the Veil | the loom climb, a chase through the unravelling | Odaka Sen (three phases) | — |
+
+* **Combat:** posture, deflects, perilous attacks, executions, stealth kills, shuriken, Ember Art and five stances;
+  12 foe types plus six champions, with sight cones, alert propagation and attack tokens.
+* **Progression:** 29 items (blades, garbs, masks, tokens, gems, materials) across six chapters; a 16-skill tree in four tiers; a forge;
+  25 ink scrolls; 46 achievements; New Game+; chapter select with per-chapter records.
+* **Story:** fully scripted in-engine cinematics, a mercy theme (spare or finish), and three endings (Reweave,
+  Unravel, Restitch — the last needs all 25 scrolls).
+* **Presentation:** a colour script per room, procedural parallax worlds per chapter, weather (rain, snow, threads),
+  HDR bloom and grading, and a score of voice, breath and wind (no instruments).
+* **Accessibility:** shake scale, flash reduction, deflect-window assist, game speed 60–100 %, hold/toggle guard,
+  subtitle size, high-contrast foes, ink/petal effects, hint toggle.
 
 ## Testing
 ```sh
 cmake --build build && ./build/sv_tests      # or: ctest --test-dir build
 ```
-The suite drives the real `World` simulation headless and has 360 checks:
-* level and script validation
-* save, settings and profile round-trips
-* progression rules
-* running and jump arcs, a scripted wall-jump climb
-* combo kills, a timed deflect, execution, stealth kill, grass hiding
-* the bell and bridge puzzles, the wind trial (win, fail, retry)
-* stance gating, Kage Rank, right-stick aim, the two-deathblow boss
+The suite drives the real `World` simulation headless and has 1,620 checks, including:
+* every chapter's level and script: loads, links (scenes, NPCs, labels), scroll counts, boss and phase scenes
+* save, settings and profile round-trips; chapter replay resets
+* movement arcs, wall-jump climb, combat, stealth, puzzles, trials, the multi-deathblow bosses
 * finite audio synthesis
+
+Level generators in `tools/levels/chN.py` also run a reachability search over every room (`levelkit.py`) and
+refuse to write a level with an unreachable exit, chest, scroll or bead.
 
 Visual verification uses `--autoplay` scripts with `shot` commands (see `src/main.cpp`).
 
@@ -115,12 +138,14 @@ Measured on an AMD Renoir iGPU at 1920×1080 with 4× MSAA: about **5 ms GPU** a
 ## Code map
 | Path | Contents |
 |---|---|
-| `src/core/` | math, RNG/noise, file and XDG paths, controller-first input |
-| `src/render/` | batched GL renderer, sky shader, bloom/grade post chain, FreeType text, PNG capture |
-| `src/audio/` | synthesized SFX bank, generative music (Karplus–Strong koto, shakuhachi, taiko, drone), ambience, reverb |
+| `src/core/` | math, RNG/noise, UTF-8 file paths (XDG / %APPDATA%), log, controller-first input |
+| `src/render/` | GL 3.3 loader, batched renderer, sky shader, bloom/grade post chain, FreeType text, PNG capture |
+| `src/audio/` | synthesized SFX bank, generative score of formant-synthesized voice, breath and wind, rain/water ambience, reverb |
 | `src/game/` | skeleton/animation, level loader, player, enemies, world, style & trials, cutscenes, progression, game flow & UI |
+| `src/platform/` | store services (achievements); a no-op default and an optional Steamworks backend |
 | `src/ui/` | device-aware button glyphs and rich text |
-| `data/` | `levels/*.lvl` (room-based ASCII levels), `scripts/*.cut` (cutscene language) |
+| `data/` | `levels/*.lvl` (room-based ASCII levels, generated by `tools/levels/chN.py`), `scripts/*.cut` (cutscene language) |
+| `site/`, `steam/`, `packaging/` | website, Steam build scripts and store copy, desktop entry / Windows resources |
 | `assets/fonts/` | Noto Serif + a subset of Noto Serif CJK (OFL). Regenerate with `tools/subset_fonts.sh`. |
 
 ## Contributing

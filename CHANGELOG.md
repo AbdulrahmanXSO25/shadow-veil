@@ -7,6 +7,46 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-09
+
+Release candidate: the full campaign, a Windows version and downloadable packages.
+
+### Added
+
+- Chapters II–VI: *The Drowned Terrace*, *Crimson Maple Pass*, *Castle Hakuro*, *The Mirror Province* and
+  *The Heart of the Veil*, each with its own rooms, palette, background world, cinematics, trial and champion.
+- New mechanics: swimming, sluices and flooding, rising winds, crumbling ledges, beacon light, two-layer rooms
+  stepped between with a dash, and a chase through the unravelling Veil.
+- Nine new foe types and five new champions: Funaki, Karasu, Lord Hakuro, Kagami and Odaka Sen (three phases).
+- Stillwater, Thunder, Shadow and Mirror stances; four tier-3 skills; twelve new items.
+- 20 new ink scrolls (25 in all), 25 new achievements (46 in all), the mercy theme (spare the champions) and
+  three endings chosen at the heart of the Veil; Restitch requires all 25 scrolls.
+- Chapter select, per-chapter grades, times and records, an end-of-chapter card, and credits.
+- Windows support: a runtime OpenGL loader, UTF-8-safe paths, saves under `%APPDATA%\XSO\Shadow Veil`,
+  an application icon and version resource, and a console-free release executable.
+- Release packaging for Windows (zip) and Linux (portable tarball, optional AppImage), with pinned,
+  statically linked SDL3, FreeType and zlib; Windows MSVC CI; a tag-triggered release workflow.
+- A log file next to the saves, and clear error dialogs when the graphics driver lacks OpenGL 3.3 or the game
+  data is missing.
+- The website (`site/`), Steam build scripts, store copy and achievement export (`steam/`), and an optional
+  Steamworks achievements backend.
+- `tools/levels/`: Python level generators with a reachability check for every room.
+- `--chapter` and `--export-achievements` command-line options.
+- The test suite grows from 360 to 1,620 checks, validating every chapter's level and script.
+
+### Changed
+
+- The score is voice, breath and wind only; no instruments.
+- Content review: removed religious and superstition references (shrines, bells, prayers, zodiac years,
+  talismans) from all player-facing text and sounds. Camps replace shrines; the bell puzzle is now a
+  counterweight catch.
+- The Bright side of the Mirror Province is darkened so terrain reads against the sky.
+
+### Fixed
+
+- Persistent gate and flood flags are chapter-prefixed, so replaying a chapter resets its puzzles.
+- The chase hit-tracking is reset when a scripted chase begins.
+
 ## [0.1.0] - 2026-10-30
 
 First public release: Chapter I, *The Ashen Grove*, playable from start to finish.
@@ -33,5 +73,6 @@ First public release: Chapter I, *The Ashen Grove*, playable from start to finis
   audio synthesis.
 - A deterministic autoplay harness for screenshots and automated play-testing.
 
-[Unreleased]: https://github.com/AbdulrahmanXSO25/shadow-veil/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/AbdulrahmanXSO25/shadow-veil/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/AbdulrahmanXSO25/shadow-veil/compare/v0.1.0...v0.9.0
 [0.1.0]: https://github.com/AbdulrahmanXSO25/shadow-veil/releases/tag/v0.1.0

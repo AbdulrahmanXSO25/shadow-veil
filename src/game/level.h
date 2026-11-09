@@ -9,9 +9,16 @@ namespace sv {
 
 constexpr float TILE = 48.f;
 
-enum class Tile : uint8_t { Empty, Solid, Plank, OneWay, Spikes, FalseWall, Breakable, Broken, Wall };
+enum class Tile : uint8_t {
+    Empty, Solid, Plank, OneWay, Spikes, FalseWall, Breakable, Broken, Wall,
+    Water,          // '~' swimmable; hides a still, submerged body
+    Crumble,        // 'c' gives way a moment after it is stood on, then re-forms
+    CrumbleGone,
+    Bright,         // 'a' solid only in the Bright layer of the Mirror Province
+    Hollow,         // 'b' solid only in the Hollow layer
+};
 
-enum class BgStyle { Cliff, Village, Grove, Ravine, Gate };
+enum class BgStyle { Cliff, Village, Grove, Ravine, Gate, Terrace, Maple, Castle, Mirror, Loom };
 
 // Everything that defines a room's look. Rooms blend palettes as the camera crosses boundaries.
 struct Palette {
@@ -25,6 +32,9 @@ struct Palette {
     float glowAmt = 0;                 // how strongly the horizon & windows burn
     PostParams post;
     float embers = 0, ash = 0, fireflies = 0, leaves = 0, petals = 0, mist = 0.3f;
+    float rain = 0, snow = 0, threads = 0;     // weather & Veil motes
+    Color water{0.10f, 0.22f, 0.27f};
+    Color thread{1.0f, 0.82f, 0.45f};            // gold of the Veil's thread
     Vec2 wind{30, 0};
 };
 Palette lerp(const Palette& a, const Palette& b, float t);
@@ -41,6 +51,9 @@ struct Room {
     float wind = 0.3f, fire = 0, crickets = 0;
     bool bossArena = false;
     bool stealthZone = false;
+    bool layers = false;             // Mirror Province: Veil-Steps flip between Bright and Hollow
+    std::string palette2;            // palette blended in while the Hollow layer is active
+    float rain = 0, water = 0;       // ambience: rain hiss, running water
     int seed = 1;
 };
 
@@ -80,6 +93,9 @@ struct Level {
     int width = 0, height = 0;
     std::vector<Tile> tiles;
     std::vector<uint8_t> grass;      // tall-grass mask
+    std::vector<uint8_t> updraft;    // '|' rising-wind columns
+    int layer = 0;                   // runtime: 0 Bright, 1 Hollow (only matters where Bright/Hollow tiles exist)
+    bool hasLayers = false;
     std::vector<Room> rooms;
     std::vector<Spawn> spawns;
     std::vector<Prop> props;
@@ -93,7 +109,14 @@ struct Level {
     }
     void set(int x, int y, Tile t) { if (x >= 0 && x < width && y >= 0 && y < height) tiles[y * width + x] = t; }
     bool grassAt(int x, int y) const { return x >= 0 && x < width && y >= 0 && y < height && grass[y * width + x]; }
-    bool solidAt(int x, int y) const { Tile t = at(x, y); return t == Tile::Solid || t == Tile::Plank || t == Tile::Breakable || t == Tile::Wall; }
+    bool updraftAt(int x, int y) const { return x >= 0 && x < width && y >= 0 && y < height && updraft[y * width + x]; }
+    bool waterAt(int x, int y) const { return at(x, y) == Tile::Water; }
+    bool solidIn(Tile t, int lay) const {
+        return t == Tile::Solid || t == Tile::Plank || t == Tile::Breakable || t == Tile::Wall || t == Tile::Crumble ||
+               (t == Tile::Bright && lay == 0) || (t == Tile::Hollow && lay == 1);
+    }
+    bool solidAt(int x, int y) const { return solidIn(at(x, y), layer); }
+    bool solidInLayer(int x, int y, int lay) const { return solidIn(at(x, y), lay); }
     float pixelWidth() const { return width * TILE; }
     float pixelHeight() const { return height * TILE; }
     int roomAt(float worldX) const;

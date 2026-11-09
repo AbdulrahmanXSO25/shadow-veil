@@ -120,6 +120,84 @@ int main() {
             for (auto& c : cmds) CHECK(known.count(c.op), "%s:%d unknown op %s", name.c_str(), c.line, c.op.c_str());
     });
 
+    test("every chapter's level and script load, link up and use known commands", [] {
+        std::set<std::string> known = {"lock", "unlock", "letterbox", "fade", "wait", "say", "narrate", "title", "camera", "camera_release", "npc",
+                                       "player", "sfx", "music", "shake", "flash", "slowmo", "give", "flag", "ember", "hint", "boss_start", "request",
+                                       "if_flag", "if_not_flag", "ripple", "open", "toast", "flood", "chase", "chase_stop", "layer", "spawn",
+                                       "boss_leave", "choice", "goto", "goto_if", "label", "walk"};
+        int totalLore = 0;
+        for (auto& ch : chapterDefs()) {
+            std::string err;
+            Level L;
+            bool ok = loadLevel(contentPath(ch.levelPath), L, err);
+            CHECK(ok, "chapter %d level: %s", ch.number, err.c_str());
+            if (!ok) continue;
+            CutsceneLibrary lib;
+            CHECK(lib.load(contentPath(ch.scriptPath), err), "chapter %d script: %s", ch.number, err.c_str());
+            for (auto& t : L.triggers)
+                if (startsWith(t.action, "cutscene ")) CHECK(lib.scenes.count(t.action.substr(9)), "ch%d missing scene %s", ch.number, t.action.c_str());
+            int bosses = 0, camps = 0, lore = 0;
+            int deathblows = 1;
+            std::set<std::string> ids;
+            for (auto& s : L.spawns) {
+                if (s.kind != "drain") { CHECK(!ids.count(s.id), "ch%d duplicate id %s", ch.number, s.id.c_str()); ids.insert(s.id); }
+                // anything that persists an "open:" flag must carry the chapter prefix, so replays can reset it
+                bool persists = (s.kind == "gate" && s.id != "boss_door") || s.kind == "drain" || s.kind == "sluice";
+                if (persists && ch.number > 1) {
+                    CHECK(startsWith(s.id, ch.prefix + "."), "ch%d id %s lacks prefix", ch.number, s.id.c_str());
+                    if (!s.get("link").empty()) CHECK(startsWith(s.get("link"), ch.prefix + "."), "ch%d link %s lacks prefix", ch.number, s.get("link").c_str());
+                }
+                if (s.kind == "npc" && !s.get("talk").empty()) CHECK(lib.scenes.count(s.get("talk")), "ch%d missing talk %s", ch.number, s.get("talk").c_str());
+                if (s.kind == "chest") CHECK(findItem(s.get("item")) != nullptr, "ch%d chest item %s", ch.number, s.get("item").c_str());
+                if (s.kind == "material") CHECK(findItem(s.get("item", "iron_sand")) != nullptr, "ch%d material %s", ch.number, s.get("item").c_str());
+                if (s.kind == "scroll") {
+                    const LoreDef* ld = findLore(s.get("lore"));
+                    CHECK(ld != nullptr, "ch%d lore %s", ch.number, s.get("lore").c_str());
+                    if (ld) CHECK(ld->chapter == ch.number, "ch%d scroll %s belongs to chapter %d", ch.number, ld->id.c_str(), ld->chapter);
+                    lore++;
+                }
+                if (s.kind == "shrine") camps++;
+                if (s.kind == "trial") CHECK(s.get("reward") == ch.stance, "ch%d trial reward %s", ch.number, s.get("reward").c_str());
+                if (s.kind == "boss") {
+                    bosses++;
+                    if (ch.number > 1) {
+                        bool okT = false; EType t = etypeByName(s.get("who"), &okT);
+                        CHECK(okT && enemyDef(t).boss, "ch%d boss who=%s", ch.number, s.get("who").c_str());
+                        if (okT) { deathblows = enemyDef(t).deathblows; CHECK(enemyDef(t).flag == ch.bossFlag, "ch%d boss flag %s", ch.number, enemyDef(t).flag.c_str()); }
+                    }
+                }
+            }
+            CHECK(bosses == 1, "ch%d bosses=%d", ch.number, bosses);
+            CHECK(camps >= 2, "ch%d camps=%d", ch.number, camps);
+            CHECK(lore == loreCountForChapter(ch.number), "ch%d scrolls placed %d of %d", ch.number, lore, loreCountForChapter(ch.number));
+            totalLore += lore;
+            std::vector<std::string> req = {"intro", "boss_intro", "boss_outro"};
+            for (int p = 2; p <= deathblows; p++) req.push_back("boss_phase" + std::to_string(p));
+            if (!ch.stance.empty()) req.push_back(ch.stance + "_awaken");
+            for (auto& r : req) CHECK(lib.scenes.count(r), "ch%d engine scene %s", ch.number, r.c_str());
+            bool endsChapter = false;
+            for (auto& c : lib.scenes["boss_outro"]) if (c.op == "request" && !c.args.empty() && c.args[0] == "chapter_end") endsChapter = true;
+            CHECK(endsChapter, "ch%d boss_outro does not end the chapter", ch.number);
+            for (auto& [name, cmds] : lib.scenes) {
+                std::set<std::string> labels;
+                for (auto& c : cmds) { CHECK(known.count(c.op), "ch%d %s:%d unknown op %s", ch.number, name.c_str(), c.line, c.op.c_str()); if (c.op == "label" && !c.args.empty()) labels.insert(c.args[0]); }
+                for (auto& c : cmds) {
+                    if (c.op == "goto" && !c.args.empty()) CHECK(labels.count(c.args[0]), "ch%d %s goto %s has no label", ch.number, name.c_str(), c.args[0].c_str());
+                    if (c.op == "goto_if" && c.args.size() > 1) CHECK(labels.count(c.args[1]), "ch%d %s goto_if %s has no label", ch.number, name.c_str(), c.args[1].c_str());
+                    if (c.op == "npc" && !c.args.empty()) {
+                        bool found = false;
+                        for (auto& s : L.spawns) if (s.kind == "npc" && s.get("id", s.id) == c.args[0]) found = true;
+                        CHECK(found, "ch%d %s: npc %s not in level", ch.number, name.c_str(), c.args[0].c_str());
+                    }
+                }
+            }
+            // the world must come up in every chapter
+            SaveData save = newGame(0); Settings settings; Input input; World w;
+            CHECK(w.init(contentPath(ch.levelPath), &save, &settings, nullptr, &input, err), "ch%d world init: %s", ch.number, err.c_str());
+        }
+        CHECK(totalLore == (int)loreDefs().size(), "scrolls placed %d of %zu", totalLore, loreDefs().size());
+    });
+
     test("save data round-trips", [] {
         SaveData s = newGame(0);
         s.mon = 321; s.hp = 77.5f; s.skills = {"blade_fourth", "veil_second"}; s.flags = {"ember", "open:bellgate"};

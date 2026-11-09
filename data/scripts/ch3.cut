@@ -1,0 +1,142 @@
+# SHADOW VEIL — Chapter III: Crimson Maple Pass
+
+scene intro
+  lock
+  fade 1 0
+  letterbox 1 0
+  player face right
+  player pose stand
+  music silent
+  camera player 3 -2 1.2 0
+  wait 0.8
+  narrate "Rei followed the captives' boat upriver for two days. On the third morning the river turned to rapids, and the road turned to the mountains."
+  narrate "Beyond the maple pass stands Castle Hakuro. The pass belongs to the Crow Band, and no convoy crosses it without paying in blood or rice."
+  fade 0 3.0 nowait
+  wait 1.6
+  camera player 12 -3 0.85 4 nowait
+  say REI "Hakuro's men took the captives up this road. The crows let them pass."
+  say REI "Or they couldn't stop them."
+  camera player 3 -2 1.0 1.5
+  title "第三章" "Chapter III — Crimson Maple Pass" 4.5
+  letterbox 0 1.2
+  camera_release
+  unlock
+  hint crow
+  request save
+end
+
+scene bridge_duel
+  lock
+  letterbox 1 0.6
+  camera player 14 -1 0.95 1.8
+  say SOLDIER "Stop there. This bridge belongs to the Crow Band."
+  say REI "I'm not here for your bridge. Hakuro's men took people from Minase."
+  say SOLDIER "Everyone who comes up this road is looking for someone. Draw, or go back down."
+  camera_release
+  letterbox 0 0.6
+  unlock
+end
+
+scene hamlet
+  lock
+  letterbox 1 0.8
+  camera npc:exile1 -2 -1 1.05 2.2
+  wait 0.6
+  say REI "A village. Up here."
+  npc exile1 face left
+  say EXILE "Stay where you are, stitcher. We can see the thread-mark on your blade from here."
+  say REI "I haven't come to hurt anyone."
+  say EXILE "Your people said that once. Six hundred years ago, they said it to my great-grandmother's great-grandmother, and then they sewed the sky shut behind her."
+  say EXILE "We are from the Hollow. The Veil is wearing thin. Some of us walked out through the tears."
+  say EXILE "Karasu keeps us hidden. The crows raid Hakuro's carts so the children eat. That is the whole of our crime."
+  say REI "…I was told the Hollow held monsters."
+  say EXILE "Look around. Count them."
+  camera_release
+  letterbox 0 0.8
+  unlock
+  request save
+end
+
+scene exile_talk
+  say EXILE "Rest by the fire if you like. Karasu will want to see you himself, up at the Roost."
+  say EXILE "Be careful with him. He fights like the wind on this ridge — from everywhere at once."
+end
+
+scene exile_mason
+  say EXILE "I cut stone on the other side, before. Hakuro's men pay nothing for it here; they just take the cutter."
+  say EXILE "Every pair of hands in the valley is building that road. It runs past the castle, up to where the Veil is thinnest."
+end
+
+scene boss_intro
+  lock
+  letterbox 1 1.0
+  music silent
+  camera boss -4 -1 1.0 2.2
+  wait 0.4
+  say KARASU "My scouts said a Kagenui was climbing the pass. I didn't believe them. You were supposed to be extinct."
+  say REI "I'm looking for the captives from Minase."
+  say KARASU "They went over the ridge a day ago. I counted the chains."
+  say REI "And you let them pass."
+  say KARASU "Forty spears and a gun-line, against my people? I am not a fool. But I won't let a stitcher walk past my village either."
+  say KARASU "Your kind sewed us in once. Show me you're different, or show me you're the same."
+  sfx perilous
+  shake 0.4
+  camera_release
+  letterbox 0 0.8
+  unlock
+  boss_start
+end
+
+scene boss_phase2
+  lock
+  letterbox 1 0.4
+  camera boss 0 -1 1.1 0.6
+  say KARASU "Ha! Good. Then let the wind take a turn."
+  shake 0.5
+  wait 0.4
+  camera_release
+  letterbox 0 0.4
+  unlock
+end
+
+scene boss_outro
+  lock
+  letterbox 1 1.0
+  music elegy
+  wait 1.4
+  camera boss 0 -1 1.3 2.2
+  say KARASU "…Go on. That is what your blade is for."
+  say REI "I saw your village. The children by the fire."
+  say REI "Get up, Karasu."
+  wait 0.8
+  say KARASU "…So you are different. Or you are only young."
+  say KARASU "Listen, then. Your master came over this pass a month ago. The old man in straw."
+  say KARASU "He told me the Veil would come down within the year, and that every exile could walk home in the daylight."
+  say REI "Odaka said that?"
+  say KARASU "He said there is someone inside the Veil who has been holding it closed for twenty years. Someone he means to bring out. Hakuro's road leads him there."
+  say KARASU "Take this mask. My scouts will know you by it, and let you pass."
+  toast "Crow Mask" "Token acquired"
+  wait 0.6
+  narrate "Over the ridge, the white walls of Castle Hakuro caught the last of the sun."
+  wait 0.6
+  fade 1 2.5
+  wait 0.4
+  request chapter_end
+end
+
+scene thunder_awaken
+  lock
+  letterbox 1 0.5
+  slowmo 0.4 1.2
+  camera player 0 -1 1.3 1.0
+  flash 0.6 fff2c0
+  shake 0.4
+  wait 0.6
+  say REI "The storm doesn't choose. It waits for the moment, and then it falls."
+  toast "Thunder Stance awakened" "An Execution calls lightning down on up to three nearby foes."
+  hint thunder
+  camera_release
+  letterbox 0 0.5
+  unlock
+  request save
+end

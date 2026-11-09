@@ -38,3 +38,11 @@ Thumbs.db
 # Local media exports are not kept in the repository.
 /dist/*.mp4
 /smoke.png
+/dist/*.zip
+/dist/*.tar.gz
+/dist/*.AppImage
+/dist/stage-*/
+/steam/content/
+/steam/output/
+/steam/achievement_icons/
+__pycache__/

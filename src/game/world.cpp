@@ -31,13 +31,6 @@ bool World::init(const std::string& levelPath, SaveData* s, const Settings* st, 
     return true;
 }
 
-static EType typeFor(const std::string& k) {
-    if (k == "spearman") return EType::Spearman;
-    if (k == "archer") return EType::Archer;
-    if (k == "boss") return EType::Tetsugen;
-    return EType::Swordsman;
-}
-
 void World::spawnFromLevel() {
     enemies.clear(); projectiles.clear(); pickups.clear(); mechs.clear(); npcs.clear(); anchors.clear();
     lights.clear(); particles.clear();
@@ -47,25 +40,21 @@ void World::spawnFromLevel() {
     int nextId = 0;
     for (auto& sp : level.spawns) {
         const std::string& k = sp.kind;
-        if (k == "swordsman" || k == "spearman" || k == "archer" || k == "boss") {
-            if (k == "boss" && save->has("boss_tetsugen")) continue;
-            Enemy e;
+        bool isFoe = false;
+        EType ft = EType::Swordsman;
+        if (k == "boss") { isFoe = true; ft = etypeByName(sp.get("who", "tetsu"), &isFoe); }
+        else ft = etypeByName(k, &isFoe);
+        if (isFoe) {
+            const EDef& D = enemyDef(ft);
+            if (D.boss && !D.flag.empty() && save->has(D.flag)) continue;
+            Enemy e = makeEnemy(ft, sp.pos, sp.get("face", "left") == "right" ? 1.f : -1.f);
             e.id = nextId++;
-            e.type = typeFor(k);
-            e.def = &enemyDef(e.type);
             e.spawnId = sp.id;
-            e.pos = e.prevPos = e.home = sp.pos;
-            e.facing = sp.get("face", "left") == "right" ? 1.f : -1.f;
-            float patrol = sp.getf("patrol", e.type == EType::Archer ? 0.f : 3.f) * TILE;
+            float patrol = sp.getf("patrol", (D.ranged || ft == EType::Lurker || D.boss) ? 0.f : 3.f) * TILE;
             e.patrolL = sp.pos.x - patrol; e.patrolR = sp.pos.x + patrol;
             e.sleeping = sp.get("sleep") == "1";
-            float ng = (float)save->ngPlus;
-            e.hpScale = 1 + 0.5f * ng; e.dmgScale = 1 + 0.3f * ng;
-            e.hp = e.def->hp * e.hpScale;
-            e.deathblows = e.def->deathblows;
-            e.boss = e.type == EType::Tetsugen;
+            e.lurking = ft == EType::Lurker && sp.get("lurk", "1") == "1";
             e.st = e.boss ? EState::Idle : EState::Patrol;
-            e.sash.init(e.pos + Vec2{0, -70}, 7, 6);
             enemies.push_back(e);
             if (e.boss) bossIdx = (int)enemies.size() - 1;
         } else if (k == "anchor") {
@@ -100,13 +89,24 @@ void World::spawnFromLevel() {
             else if (k == "shrine") { m.kind = MechKind::Shrine; m.name = level.rooms[sp.room].name; m.active = save->has("shrine:" + sp.id); }
             else if (k == "examine") { m.kind = MechKind::Examine; }
             else if (k == "trial") { m.kind = MechKind::Trial; m.item = sp.get("reward", "gale"); m.text = sp.get("foes"); m.w = sp.getf("time", 75); m.active = save->has(m.item); }
+            else if (k == "sluice") { m.kind = MechKind::Sluice; m.active = save->has("open:" + m.link); m.t = m.active ? 1.f : 0.f; }
+            else if (k == "drain") {
+                // a body of water (w x h tiles, bottom-left at the spawn) that drains or fills when its id opens
+                m.kind = MechKind::Drain;
+                m.text = sp.get("mode", "drain");
+                m.area = Rect{sp.pos.x - TILE * 0.5f, sp.pos.y - m.h * TILE, m.w * TILE, m.h * TILE};
+                m.active = save->has("open:" + m.id);
+            }
+            else if (k == "beacon") { m.kind = MechKind::Beacon; m.active = true; m.range = sp.getf("range", 9); m.speed = sp.getf("speed", 0.7f); m.h = sp.getf("h", 3); m.timer = sp.pos.x * 0.013f; }
             else if (k == "player" || k == "boss_door") continue;
             else { logWarn("unknown spawn kind '%s'", k.c_str()); continue; }
             if (m.kind == MechKind::Scroll && m.active) continue;
             mechs.push_back(m);
         }
     }
+    resetEnvironment();
     // lights
+    for (auto& m : mechs) if (m.kind == MechKind::Beacon) lights.push_back({m.pos + Vec2{0, -m.h * TILE}, rgb(0xffb35c), 360, 0.25f});
     for (auto& p : level.props) {
         if (p.kind == "lantern") lights.push_back({p.pos + Vec2{TILE * 0.5f, -TILE * 1.1f}, rgb(0xffb35c), 260, 0.15f});
         else if (p.kind == "hanging_lantern") lights.push_back({p.pos + Vec2{TILE * 0.5f, -TILE * 0.6f}, rgb(0xff9a4a), 220, 0.2f});
@@ -341,6 +341,7 @@ HitResult World::hitPlayer(const AttackInfo& a) {
             input->rumble(0.3f, 0.7f, 90);
             if (a.sourceEnemy >= 0 && a.sourceEnemy < (int)enemies.size()) {
                 Enemy& e = enemies[a.sourceEnemy];
+                if (hasStance("stillwater")) { e.chill = 2.2f; emit(PType::Frost, contact, 18, 260, rgb(0xbfeaff), 3, 0.6f); }
                 e.posture += (a.posture * 1.4f + 16) * (1 + stats.postureDmg);
                 e.postureDelay = 1.6f;
                 if (e.posture >= e.def->posture) {
@@ -399,7 +400,7 @@ HitResult World::hitEnemy(int idx, const AttackInfo& a) {
     bool wasAware = e.awareness >= 1;
     e.awareness = 1; e.lastKnown = player.pos;
     bool canGuard = wasAware && facingPlayer && !a.ember && e.st != EState::Broken && e.st != EState::Windup && e.st != EState::Attack &&
-                    e.st != EState::Stunned && e.type != EType::Archer;
+                    e.st != EState::Stunned && e.def->canGuard && !e.lurking;
     float guardP = e.def->guardChance + (e.st == EState::Guarding ? 0.35f : 0) + e.blocksInRow * 0.05f;
     if (canGuard && g_fxRng.uniform() < guardP) {
         e.posture += a.posture * (1 + stats.postureDmg);
@@ -461,38 +462,50 @@ HitResult World::hitEnemy(int idx, const AttackInfo& a) {
 void World::killEnemy(int idx, bool execution, bool stealth) {
     Enemy& e = enemies[idx];
     if (e.boss && e.deathblows > 1) {
-        // first deathblow: the iron ronin kneels, then rises burning
+        // a deathblow that does not end it: the champion kneels, then rises changed
         e.deathblows--;
         e.hp = e.def->hp * e.hpScale;
         e.posture = 0;
         e.st = EState::Kneel; e.stT = 0; e.atk = -1;
+        e.phase++;
         e.phase2 = true;
         if (e.hasToken) { e.hasToken = false; tokensInUse--; }
-        event(WorldEvent::Cutscene, "boss_phase2");
+        for (auto& o : enemies) if (o.summoned && o.alive()) { o.hp = 0; o.st = EState::Dead; o.stT = 0; }   // the pack scatters
+        event(WorldEvent::Cutscene, "boss_phase" + std::to_string(e.phase));
         return;
     }
     e.st = EState::Dead; e.stT = 0; e.hp = 0;
+    if (e.boss && e.def->spared) {
+        // the final blow is turned aside: the champion yields and lives
+        e.yielded = true;
+        sfx(Sfx::Clang, e.pos + Vec2{0, -60}, 1.0f, 0.7f);
+        emit(PType::Spark, e.pos + Vec2{0, -60}, 30, 700, rgb(0xfff2c0), 3, 0.4f);
+        slowmo = 0.9f; slowmoScale = 0.3f;
+    } else {
+        Vec2 c = e.pos + Vec2{0, -e.h() * 0.55f};
+        inkBurst(c, Vec2{-e.facing, -0.4f}, 26);
+        sfx(Sfx::Kill, c, 1.0f);
+    }
     addStyle(execution ? SExecute : (stealth ? SStealth : SKill), execution ? 90.f : (stealth ? 80.f : 30.f));
     if (e.hasToken) { e.hasToken = false; tokensInUse--; }
-    Vec2 c = e.pos + Vec2{0, -e.h() * 0.55f};
-    inkBurst(c, Vec2{-e.facing, -0.4f}, 26);
-    sfx(Sfx::Kill, c, 1.0f);
-    save->bump("kills");
-    gainEssence(e.def->essence + (execution ? 10 : 0) + (stealth ? 10 : 0));
+    if (!e.summoned) save->bump("kills");
+    gainEssence(e.summoned ? e.def->essence / 3 : e.def->essence + (execution ? 10 : 0) + (stealth ? 10 : 0));
     // a pouch of mon drops
-    if (e.def->mon > 0) {
+    if (e.def->mon > 0 && !e.summoned) {
         Pickup p; p.kind = "mon"; p.pos = e.pos - Vec2{0, 20}; p.amount = e.def->mon + g_fxRng.irange(0, e.def->mon / 2);
         p.spawnId = ""; p.bob = g_fxRng.uniform() * 6;
         pickups.push_back(p);
     }
     if (e.boss) {
         bossActive = false;
-        save->flags.insert("boss_tetsugen");
-        achieve("boss_tetsugen");
+        const EDef& D = *e.def;
+        if (!D.flag.empty()) save->flags.insert(D.flag);
+        if (!D.achievement.empty()) achieve(D.achievement);
         if (!player.tookDamageInBoss) achieve("boss_nodamage");
-        save->add("iron_vow");
+        if (!D.reward.empty()) save->add(D.reward);
+        for (auto& o : enemies) if (o.summoned && o.alive()) { o.hp = 0; o.st = EState::Dead; o.stT = 0; }
         for (auto& m : mechs) if (m.kind == MechKind::Gate && m.id == "boss_door") m.active = true;
-        event(WorldEvent::BossDefeated, e.def->name);
+        event(WorldEvent::BossDefeated, D.name);
     }
 }
 
@@ -500,11 +513,17 @@ void World::activateLink(const std::string& link) {
     if (link.empty()) return;
     save->flags.insert("open:" + link);
     for (auto& m : mechs) {
+        if (m.kind == MechKind::Drain && m.id == link && !m.active) {
+            m.active = true;
+            floodRect(m.area, m.text == "fill" ? 0 : -1);
+            if (m.text != "fill") achieve("sluice_puzzle");
+        }
         if ((m.kind == MechKind::Gate || m.kind == MechKind::Bridge) && m.id == link && !m.active) {
             m.active = true;
             sfx(m.kind == MechKind::Gate ? Sfx::Gate : Sfx::Break, m.pos, 1.0f);
             shake(0.3f);
             if (link == "bellgate") { achieve("bell_puzzle"); event(WorldEvent::Cutscene, "bell_rung"); }
+            else if (m.kind == MechKind::Gate) event(WorldEvent::Cutscene, "opened_" + link);
             if (m.kind == MechKind::Bridge) achieve("bridge_puzzle");
         }
     }
@@ -606,6 +625,7 @@ void World::update(float dtIn) {
     }
     updateProjectiles(dt);
     updateMechs(dt);
+    updateEnvironment(dt);
     updateParticles(dt);
     updateTriggers();
     updateCamera(dtIn);
@@ -646,8 +666,17 @@ void World::updateTriggers() {
             else if (arg == "camp") musicOverride = MusicMode::Shrine;
         }
         else if (a == "flag") save->flags.insert(arg);
-        else if (a == "grove_enter") { groveSpotted = false; save->flags.insert("grove_tracking"); }
-        else if (a == "grove_exit") { if (save->has("grove_tracking") && !groveSpotted) achieve("grove_unseen"); save->flags.erase("grove_tracking"); }
+        else if (a == "grove_enter" || a == "unseen_enter") { groveSpotted = false; save->flags.insert("grove_tracking"); }
+        else if (a == "grove_exit" || a == "unseen_exit") {
+            if (save->has("grove_tracking") && !groveSpotted) achieve(a == "grove_exit" ? "grove_unseen" : (arg.empty() ? "grove_unseen" : arg));
+            save->flags.erase("grove_tracking");
+        }
+        else if (a == "chase") {
+            chaseActive = true; chaseSpeed = arg.empty() ? 380.f : std::stof(arg);
+            chaseX = player.pos.x - 900; chaseHit = false;
+        }
+        else if (a == "chase_stop") { if (chaseActive && !chaseHit) achieve("outrun"); chaseActive = false; }
+        else if (a == "flood") activateLink(arg);
         else if (a == "toast") event(WorldEvent::Toast, arg, tok.size() > 2 ? tok[2] : "");
         else if (a == "chapter_end") event(WorldEvent::ChapterEnd);
         if (!t.once) triggerFired[i] = false;
@@ -728,7 +757,11 @@ void World::updateAmbient(float dt) {
     const Room& R = level.rooms[curRoom];
     AmbienceParams amb;
     amb.wind = R.wind; amb.fire = R.fire; amb.crickets = R.crickets;
-    amb.rumble = bossActive ? 0.15f : 0.f;
+    amb.rumble = bossActive ? 0.15f : (chaseActive ? 0.25f : 0.f);
+    amb.rain = std::max(R.rain, palette.rain);
+    amb.water = R.water;
+    // standing in water, the river is all around you
+    if (player.inWater) amb.water = std::max(amb.water, 0.6f);
     audio->setAmbience(amb);
     // combat music follows the threat level
     int alerted = 0, suspicious = 0;
@@ -767,17 +800,22 @@ void World::updateProjectiles(float dt) {
         pr.rot += dt * (pr.type == ProjType::Shuriken ? 30.f : 0.f);
         int tx = (int)std::floor(pr.pos.x / TILE), ty = (int)std::floor(pr.pos.y / TILE);
         bool wall = level.solidAt(tx, ty);
-        if (pr.type == ProjType::FlameWave) {
+        bool wave = pr.type == ProjType::FlameWave || pr.type == ProjType::TideWave || pr.type == ProjType::ThreadWave;
+        if (wave) {
             // hugs the ground; dies at walls
             if (wall) pr.dead = true;
-            if (g_fxRng.chance(0.6f)) emit(PType::Ember, pr.pos + Vec2{g_fxRng.range(-20, 20), -g_fxRng.range(0, 60)}, 1, 160, rgb(0xff7a2a), 4, 0.6f, 1.0f, -PI / 2);
+            if (pr.type == ProjType::FlameWave && g_fxRng.chance(0.6f)) emit(PType::Ember, pr.pos + Vec2{g_fxRng.range(-20, 20), -g_fxRng.range(0, 60)}, 1, 160, rgb(0xff7a2a), 4, 0.6f, 1.0f, -PI / 2);
+            if (pr.type == ProjType::TideWave && g_fxRng.chance(0.8f)) emit(PType::Splash, pr.pos + Vec2{g_fxRng.range(-30, 10), -g_fxRng.range(0, 80)}, 1, 220, rgb(0xa8e8f0, 0.8f), 4, 0.6f, 1.0f, -PI / 2);
+            if (pr.type == ProjType::ThreadWave && g_fxRng.chance(0.7f)) emit(PType::Thread, pr.pos + Vec2{g_fxRng.range(-20, 20), -g_fxRng.range(0, 90)}, 1, 120, palette.thread, 2.5f, 0.5f, 1.0f, -PI / 2);
         } else if (wall) {
-            if (pr.type == ProjType::Shuriken || pr.type == ProjType::Arrow) {
+            if (pr.type == ProjType::Shuriken || pr.type == ProjType::Arrow || pr.type == ProjType::Kunai) {
                 pr.stuck = true; pr.life = std::min(pr.life, 1.5f);
                 sfx(Sfx::ShurikenHit, pr.pos, 0.5f);
                 emit(PType::Spark, pr.pos, 5, 300, rgb(0xffe0a0), 2, 0.2f);
                 // breakable tiles crack under shuriken? no: only blades break fences
             } else if (pr.type == ProjType::Gale) { pr.dead = true; emit(PType::Thread, pr.pos, 12, 260, rgb(0x9ff0e0), 2, 0.4f); }
+            else if (pr.type == ProjType::Ball) { pr.dead = true; sfx(Sfx::ShurikenHit, pr.pos, 0.6f, 0.6f); emit(PType::Dust, pr.pos, 10, 200, palette.fog, 10, 0.6f); }
+            else if (pr.type == ProjType::Snare) { pr.dead = true; emit(PType::Thread, pr.pos, 12, 200, palette.thread, 2, 0.4f); }
             else { pr.dead = true; emit(PType::Ember, pr.pos, 14, 300, rgb(0xff8a3a), 5, 0.5f); }
             continue;
         }
@@ -786,14 +824,28 @@ void World::updateProjectiles(float dt) {
         if (pr.type == ProjType::Ember) {
             if (g_fxRng.chance(0.8f)) emit(PType::Ember, pr.pos + Vec2{g_fxRng.range(-10, 10), g_fxRng.range(-30, 30)}, 1, 80, rgb(0xff9a40), 5, 0.5f);
         }
+        if (pr.type == ProjType::Snare && g_fxRng.chance(0.6f)) emit(PType::Thread, pr.pos, 1, 40, palette.thread, 2, 0.3f);
+        if (pr.type == ProjType::Ball && g_fxRng.chance(0.5f)) emit(PType::Smoke, pr.pos, 1, 10, rgb(0xb8b8c0, 0.25f), 6, 0.4f);
         if (pr.fromPlayer || pr.reflected) {
-            // bells & ropes respond to shuriken
+            // beacons and ropes respond to shuriken
+            for (auto& m : mechs) {
+                if (m.kind == MechKind::Beacon && m.active) {
+                    Rect r{m.pos.x - 30, m.pos.y - 90, 60, 90};
+                    if (r.contains(pr.pos)) {
+                        m.active = false; pr.dead = true;
+                        sfx(Sfx::ShurikenHit, m.pos, 0.9f, 0.8f);
+                        emit(PType::Smoke, m.pos + Vec2{0, -70}, 20, 120, rgb(0x404048, 0.6f), 16, 1.4f, 1.0f, -PI / 2);
+                        save->bump("beacons_doused");
+                        if (save->counter("beacons_doused") >= 6) achieve("douse_beacons");
+                    }
+                }
+            }
             for (auto& m : mechs) {
                 if (m.kind == MechKind::Bell && !m.active) {
                     Rect r{m.pos.x - 28, m.pos.y - 10, 56, 70};
                     if (r.contains(pr.pos)) {
                         m.active = true; m.swingVel = sign(pr.vel.x) * 6;
-                        sfx(Sfx::Bell, m.pos, 1.0f);
+                        sfx(Sfx::Catch, m.pos, 1.0f);
                         emit(PType::Spark, pr.pos, 8, 300, rgb(0xffe0a0), 2, 0.3f);
                         pr.dead = true;
                         activateLink(m.link);
@@ -812,22 +864,27 @@ void World::updateProjectiles(float dt) {
                 AttackInfo a; a.damage = pr.damage; a.posture = pr.posture; a.projectile = true; a.ember = pr.type == ProjType::Ember; a.origin = pr.pos - pr.vel * 0.1f;
                 // shuriken interrupt archers and wind-ups
                 hitEnemy((int)i, a);
-                if (pr.type == ProjType::Shuriken && e.alive() && (e.type == EType::Archer || e.st == EState::Windup) && !e.boss) { e.st = EState::Stunned; e.stT = 0; e.atk = -1; }
+                if (pr.type == ProjType::Shuriken && e.alive() && (e.def->ranged || e.st == EState::Windup) && !e.boss) { e.st = EState::Stunned; e.stT = 0; e.atk = -1; }
                 if (pr.type != ProjType::Ember && pr.type != ProjType::Gale) { pr.dead = true; break; }
             }
         } else {
             Rect pb = playerBox();
-            Rect hit = pr.type == ProjType::FlameWave ? Rect{pr.pos.x - 22, pr.pos.y - 50, 44, 50} : Rect{pr.pos.x - 6, pr.pos.y - 6, 12, 12};
+            Rect hit = wave ? Rect{pr.pos.x - 22, pr.pos.y - (pr.type == ProjType::TideWave ? 80.f : 50.f), 44, pr.type == ProjType::TideWave ? 80.f : 50.f}
+                            : Rect{pr.pos.x - 6, pr.pos.y - 6, 12, 12};
+            // a decoy absorbs the first bolt that finds it
+            if (decoyT > 0 && !wave && Rect{decoyPos.x - 18, decoyPos.y - 96, 36, 96}.contains(pr.pos)) { pr.dead = true; decoyT = 0; emit(PType::Thread, decoyPos + Vec2{0, -50}, 20, 300, rgb(0xe8dcff), 2.5f, 0.5f); continue; }
             if (hit.overlaps(pb)) {
                 AttackInfo a; a.damage = pr.damage; a.posture = pr.posture; a.projectile = true; a.origin = pr.pos - pr.vel;
-                a.perilous = pr.type == ProjType::FlameWave;
+                a.perilous = wave || pr.type == ProjType::Ball;
                 HitResult r = hitPlayer(a);
-                if (r == HitResult::Deflected && pr.type == ProjType::Arrow) {
+                if (r == HitResult::Hit && pr.type == ProjType::Snare) { player.snared = 1.4f; sfx(Sfx::Grapple, player.pos, 0.7f, 1.4f); }
+                if (r == HitResult::Hit && pr.type == ProjType::TideWave) player.vel.x += sign(pr.vel.x) * 380;
+                if (r == HitResult::Deflected && (pr.type == ProjType::Arrow || pr.type == ProjType::Kunai || pr.type == ProjType::Snare)) {
                     pr.vel = Vec2{-pr.vel.x * 1.2f, -std::abs(pr.vel.y) * 0.3f - 60};
                     pr.reflected = true; pr.fromPlayer = true; pr.damage *= 2.0f; pr.hits.clear();
                     pr.life = 2;
                 } else if (r == HitResult::Blocked) pr.dead = true;
-                else if (r == HitResult::Hit) pr.dead = pr.type != ProjType::FlameWave;
+                else if (r == HitResult::Hit) pr.dead = !wave;
             }
         }
     }
@@ -855,6 +912,7 @@ void World::updateMechs(float dt) {
             m.swing += m.swingVel * dt;
             break;
         case MechKind::Chest: if (m.active) m.t = std::min(1.f, m.t + dt * 2.5f); break;
+        case MechKind::Sluice: if (m.active) m.t = std::min(1.f, m.t + dt * 0.8f); break;
         default: break;
         }
     }
@@ -952,6 +1010,18 @@ void World::updateParticles(float dt) {
             p.rot += p.rotVel * dt;
         } else p.rot += p.rotVel * dt;
         p.pos += p.vel * dt;
+        if (p.type == PType::Snow) p.vel.x += std::sin(time * 1.3f + p.pos.y * 0.01f) * 20 * dt;
+        if (p.type == PType::Rain && p.life > 0) {
+            int tx = (int)std::floor(p.pos.x / TILE), ty = (int)std::floor(p.pos.y / TILE);
+            if (level.solidAt(tx, ty) || level.waterAt(tx, ty)) {
+                p.life = 0;
+                if (g_fxRng.chance(0.35f)) {
+                    Particle q; q.type = PType::Splash; q.pos = {p.pos.x, ty * (float)TILE}; q.vel = {g_fxRng.range(-60, 60), g_fxRng.range(-160, -60)};
+                    q.gravity = 900; q.life = q.maxLife = 0.25f; q.size = 2; q.col = p.col.withA(0.6f); q.fg = p.fg;
+                    particles.push_back(q);
+                }
+            }
+        }
         if (p.type == PType::Ink && level.solidAt((int)std::floor(p.pos.x / TILE), (int)std::floor(p.pos.y / TILE))) { p.vel = {0, 0}; p.gravity = 0; p.drag = 0; }
     }
     particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle& p) { return p.life <= 0; }), particles.end());

@@ -49,7 +49,7 @@ prop pine 1 17 h=6
 prop pine 15 17 h=5
 prop rocks 24 21 w=3
 prop rocks 3 17 w=1
-spawn examine 11 17 text="The fair lanterns still drift on the river below. An hour ago this was the most beautiful view in Kazehara."
+spawn examine 11 17 text="The fair lights still glow along the riverbank below. An hour ago this was the most beautiful view in Kurosaki."
 trigger 7 10 5 8 cutscene intro
 trigger 31 18 1 7 hint jump
 trigger 39 14 2 10 hint walljump
@@ -279,7 +279,7 @@ spawn chest 56 14 item=fox_mask
 spawn chest 76 26 item=hollow_moon
 spawn material 47 23 item=spirit_silk
 spawn scroll 84 23 lore=scroll_letter
-spawn examine 82 23 text="A waystone with no name. Fresh lilies. Master's handwriting on a folded note: Soon."
+spawn examine 82 23 text="A waystone with no name, swept clean. Master's handwriting on a folded note: Soon."
 prop rocks 81 23 w=1
 prop rocks 71 23 w=2
 prop bamboo 2 23 w=3 n=6
@@ -292,7 +292,7 @@ trigger 4 10 2 14 cutscene grove_talk
 trigger 94 10 1 14 grove_exit
 endroom
 
-room bellgate "The Bell Gate" palette=grove style=grove zoom=0.9 wind=0.3 crickets=0.5
+room bellgate "The Weight Gate" palette=grove style=grove zoom=0.9 wind=0.3 crickets=0.5
 map
 ........................................
 ........................................

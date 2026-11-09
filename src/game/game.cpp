@@ -1,24 +1,23 @@
 #include "game/game.h"
+#include "platform/platform.h"
 #include "render/renderer.h"
 #include "core/util.h"
 #include <SDL3/SDL.h>
 
 namespace sv {
 
-static const char* kLevelPath = "data/levels/ch1_ashen_grove.lvl";
-static const char* kScriptPath = "data/scripts/ch1.cut";
 
 bool Game::init(Renderer* r, Audio* a, Input* in, SDL_Window* win, const GameOptions& opt) {
     m_r = r; m_audio = a; m_in = in; m_win = win; m_opt = opt;
     loadSettings(m_settings);
     loadProfile(m_profile);
     applySettings();
-    std::string err;
-    if (!m_lib.load(contentPath(kScriptPath), err)) { logError("cutscenes: %s", err.c_str()); return false; }
     m_cut.autoAdvance = opt.autoCutscenes;
     if (opt.skipTitle) {
         if (!opt.freshSave && loadGame(m_save)) {}
         else m_save = newGame(0);
+        const auto& chs = chapterDefs();
+        if (opt.chapter >= 1 && opt.chapter <= (int)chs.size()) beginChapter(m_save, chs[opt.chapter - 1], true);
         if (!loadWorld(false)) return false;
         if (!opt.startAt.empty()) teleport(opt.startAt);
         m_screen = Screen::Playing;
@@ -60,8 +59,17 @@ bool Game::loadWorld(bool titleMode) {
     std::string err;
     SaveData* s = &m_save;
     if (titleMode) { m_save = newGame(0); m_save.flags.insert("t:title"); }
-    if (!m_world->init(contentPath(kLevelPath), s, &m_settings, m_audio, m_in, err)) { logError("level: %s", err.c_str()); return false; }
+    // an unknown level id (a save from a newer build, or hand-edited) falls back to Chapter I
+    if (!findChapter(m_save.level)) { logWarn("unknown level '%s', starting Chapter I", m_save.level.c_str()); m_save.level = chapterDefs()[0].level; m_save.checkpoint.clear(); }
+    const ChapterDef& ch = titleMode ? chapterDefs()[0] : chapterOf(m_save.level);
+    m_lib = CutsceneLibrary();
+    if (!m_lib.load(contentPath(ch.scriptPath), err)) { logError("cutscenes: %s", err.c_str()); return false; }
+    m_cut = CutscenePlayer(); m_cut.autoAdvance = m_opt.autoCutscenes;
+    if (!m_world->init(contentPath(ch.levelPath), s, &m_settings, m_audio, m_in, err)) { logError("level: %s", err.c_str()); return false; }
     if (titleMode) {
+        m_titleSub = "Six chapters  ·  one thread";
+        SaveData peek;
+        if (hasSaveGame() && loadGame(peek)) { const ChapterDef& c = chapterOf(peek.level); m_titleSub = c.numeral + "  " + c.title; }
         // the title screen is the opening shot: Rei at the cliff camp under the moon
         for (size_t i = 0; i < m_world->triggerFired.size(); i++) m_world->triggerFired[i] = true;
         m_world->controlLocked = true;
@@ -142,7 +150,7 @@ void Game::unlock(const std::string& id) {
         if (a.id == id) { Toast t{a.name, a.desc, 0, true}; m_toasts.push_back(t); }
     if (m_audio) m_audio->play(Sfx::UiConfirm, 0.6f, 0.75f);
     saveProfile(m_profile);
-    if (m_profile.achievements.size() >= 5 && m_save.skills.size() >= 5) {}
+    platform::unlockAchievement(id);
 }
 
 void Game::toast(const std::string& title, const std::string& sub) {
@@ -154,6 +162,7 @@ void Game::openScreen(Screen s) {
     m_prevScreen = m_screen;
     m_screen = s;
     m_screenT = 0; m_sel = 0; m_sel2 = 0; m_col = 0; m_listMode = false;
+    if (s == Screen::Collection) m_col = chapterOf(m_save.level).number - 1;   // open on the current chapter
     // a direction still held from the previous screen must be released before it navigates here
     if (m_in) {
         m_navDir[0] = m_in->held(Act::Up) ? -1 : (m_in->held(Act::Down) ? 1 : 0);
@@ -219,6 +228,7 @@ void Game::tick(float dt) {
     case Screen::Credits: tickCredits(dt); break;
     case Screen::Confirm: tickConfirm(dt); break;
     case Screen::HowTo: tickHowTo(dt); break;
+    case Screen::Chapters: tickChapters(dt); break;
     }
 }
 
@@ -241,6 +251,7 @@ void Game::tickTitle(float dt) {
         items.push_back("New Game+");
         acts.push_back([&] { ask("Begin New Game+? You keep your gear and skills; foes grow stronger.", [this] { m_transitionOut = true; m_afterFade = [this] { int lvl = std::max(1, m_save.ngPlus + 1); SaveData s; if (loadGame(s)) lvl = s.ngPlus + 1; startNewGame(lvl); }; }, Screen::Title); });
     }
+    if (m_profile.chaptersCleared >= 1) { items.push_back("Chapters"); acts.push_back([&] { openScreen(Screen::Chapters); }); }
     items.push_back("How to Play"); acts.push_back([&] { openScreen(Screen::HowTo); });
     items.push_back("Settings"); acts.push_back([&] { openScreen(Screen::Settings); });
     items.push_back("Achievements"); acts.push_back([&] { openScreen(Screen::Achievements); });
@@ -266,23 +277,15 @@ void Game::tickPlaying(float dt) {
     }
     if (cutscene) {
         bool confirm = m_in->pressed(Act::Confirm) || m_in->pressed(Act::Attack) || m_in->pressed(Act::Jump);
+        if (m_cut.choosing()) {
+            int d = menuNav(true);
+            if (d) m_cut.navChoice(d);
+            confirm = m_in->pressed(Act::Confirm) || m_in->pressed(Act::Attack);
+        }
         m_cut.update(w, dt, confirm, m_in->held(Act::Pause));
         for (auto& req : m_cut.takeRequests()) {
             if (req == "save") persist();
-            else if (req == "chapter_end") {
-                m_profile.chaptersCleared = std::max(m_profile.chaptersCleared, 1);
-                m_profile.ngPlusUnlocked = true;
-                if (m_profile.bestTime <= 0 || m_save.playTime < m_profile.bestTime) m_profile.bestTime = m_save.playTime;
-                if (m_save.playTime < 15 * 60) unlock("speedrun_c1");
-                ChapterResult res = scoreChapter(m_save);
-                if (res.grade[0] == 'S') unlock("grade_s");
-                // the record is compared on the chapter screen before being stored
-                m_pendingRecord = res.score;
-                m_pendingGrade = res.grade;
-                m_save.flags.insert("chapter1_complete");
-                persist();
-                openScreen(Screen::ChapterEnd);
-            }
+            else if (req == "chapter_end") finishChapter();
         }
     } else m_cut.update(w, dt, false, false);
     w.update(dt);
@@ -478,7 +481,7 @@ void Game::tickEquipment(float dt) {
 void Game::tickSkills(float dt) {
     auto& defs = skillDefs();
     int dv = menuNav(true), dh = menuNav(false);
-    if (dv) m_sel = std::clamp(m_sel + dv, 0, 2);
+    if (dv) m_sel = std::clamp(m_sel + dv, 0, 3);
     if (dh) m_col = (m_col + dh + 4) % 4;
     if (m_in->pressed(Act::Cancel)) { openScreen(m_prevScreen); return; }
     if (m_in->pressed(Act::Confirm)) {
@@ -491,7 +494,7 @@ void Game::tickSkills(float dt) {
         m_save.skillPoints--;
         m_save.skills.insert(sd->id);
         m_world->stats = computeStats(m_save);
-        if (m_audio) m_audio->play(Sfx::ShrineBell, 0.5f, 1.5f);
+        if (m_audio) m_audio->play(Sfx::CampRest, 0.5f, 1.5f);
         m_message = sd->name + " learned."; m_messageT = 2.5f;
         if (m_save.skills.size() >= 5) unlock("skills_5");
         persist();
@@ -499,7 +502,13 @@ void Game::tickSkills(float dt) {
 }
 
 void Game::tickCollection(float dt) {
-    int n = (int)loreDefs().size();
+    (void)dt;
+    int chs = (int)chapterDefs().size();
+    int tab = menuNav(false);
+    if (m_in->pressed(Act::TabPrev)) tab = -1;
+    if (m_in->pressed(Act::TabNext)) tab = 1;
+    if (tab) { m_col = (m_col + tab + chs) % chs; m_sel = 0; }
+    int n = std::max(1, loreCountForChapter(m_col + 1));
     int d = menuNav();
     if (d) m_sel = (m_sel + d + n) % n;
     if (m_in->pressed(Act::Cancel)) openScreen(m_prevScreen);
@@ -560,7 +569,7 @@ void Game::tickShrine(float dt) {
             m_afterFade = [this] {
                 m_world->respawnAtCheckpoint();
                 m_world->player.facing = 1;
-                if (m_audio) m_audio->play(Sfx::ShrineBell, 0.6f);
+                if (m_audio) m_audio->play(Sfx::CampRest, 0.6f);
                 persist();
                 toast("Rested", "Vitality and gourds restored. Enemies have returned.");
             };
@@ -610,16 +619,95 @@ void Game::tickDeath(float dt) {
     }
 }
 
+void Game::finishChapter() {
+    const ChapterDef& ch = chapterOf(m_save.level);
+    float played = m_save.playTime - (float)m_save.counter("@time");
+    auto delta = [&](const char* k) { return m_save.counter(k) - m_save.counter(std::string("@") + k); };
+    m_end = EndCard();
+    m_end.number = ch.number; m_end.title = ch.title; m_end.numeral = ch.numeral;
+    m_end.final = ch.number == (int)chapterDefs().size();
+    int found = 0, total = 0;
+    for (auto& l : loreDefs()) if (l.chapter == ch.number) { total++; if (m_save.has("lore:" + l.id)) found++; }
+    m_end.rows = {
+        {"Time", strfmt("%d:%02d", (int)(played / 60), (int)played % 60)}, {"Foes felled", strfmt("%d", delta("kills"))},
+        {"Deflections", strfmt("%d", delta("deflects"))}, {"Executions", strfmt("%d", delta("executions"))},
+        {"Stealth kills", strfmt("%d", delta("stealthKills"))}, {"Deaths", strfmt("%d", delta("deaths"))},
+        {"Ink Scrolls", strfmt("%d / %d", found, total)},
+    };
+    m_end.res = scoreChapter(m_save);
+    m_end.prevBest = m_profile.chapterBest.count(ch.level) ? m_profile.chapterBest[ch.level] : 0;
+    m_end.prevGrade = m_profile.chapterGrade.count(ch.level) ? m_profile.chapterGrade[ch.level] : "";
+    m_profile.chaptersCleared = std::max(m_profile.chaptersCleared, ch.number);
+    if (m_profile.chapterTime[ch.level] <= 0 || played < m_profile.chapterTime[ch.level]) m_profile.chapterTime[ch.level] = played;
+    if (ch.number == 1) {
+        m_profile.ngPlusUnlocked = true;
+        if (m_profile.bestTime <= 0 || played < m_profile.bestTime) m_profile.bestTime = played;
+        if (played < 15 * 60) unlock("speedrun_c1");
+        m_save.flags.insert("chapter1_complete");
+    }
+    if (m_end.res.grade[0] == 'S') unlock("grade_s");
+    m_pendingRecord = m_end.res.score;
+    m_pendingGrade = m_end.res.grade;
+    m_save.flags.insert(ch.prefix + "_complete");
+    if (m_end.final) {
+        m_profile.ngPlusUnlocked = true;
+        unlock("all_chapters");
+        for (int k = 1; k <= 3; k++)
+            if (m_save.has("ending_" + std::to_string(k))) { m_end.ending = k; unlock("ending_" + std::to_string(k)); m_profile.endings.insert(std::to_string(k)); }
+    } else {
+        // the save now points at the next chapter, so Continue resumes there even if the game is closed here
+        const ChapterDef& next = chapterDefs()[ch.number];
+        m_end.nextTitle = next.numeral + std::string("  ") + next.title;
+        beginChapter(m_save, next, false);
+    }
+    persist();
+    openScreen(Screen::ChapterEnd);
+}
+
+void Game::startChapter(const ChapterDef& c, bool replay) {
+    SaveData s;
+    if (!loadGame(s)) s = newGame(0);
+    m_save = s;
+    beginChapter(m_save, c, replay);
+    loadWorld(false);
+    m_chapterTime = 0;
+    persist();
+    openScreen(Screen::Playing);
+}
+
 void Game::tickChapterEnd(float dt) {
+    (void)dt;
     if (m_pendingRecord >= 0 && m_screenT > 3.0f) {
-        if (m_pendingRecord > m_profile.bestScore) { m_profile.bestScore = m_pendingRecord; m_profile.bestGrade = m_pendingGrade; saveProfile(m_profile); }
+        // the record is compared on the chapter screen before being stored
+        const ChapterDef& ch = chapterDefs()[m_end.number - 1];
+        if (m_pendingRecord > m_end.prevBest) {
+            m_profile.chapterBest[ch.level] = m_pendingRecord; m_profile.chapterGrade[ch.level] = m_pendingGrade;
+            if (ch.number == 1) { m_profile.bestScore = m_pendingRecord; m_profile.bestGrade = m_pendingGrade; }
+            saveProfile(m_profile);
+        }
         m_pendingRecord = -1;
     }
     int d = menuNav();
     if (d) m_sel = (m_sel + d + 2) % 2;
     if (m_screenT > 2.5f && m_in->pressed(Act::Confirm)) {
-        if (m_sel == 0) { m_transitionOut = true; m_afterFade = [this] { startNewGame(m_save.ngPlus + 1); }; }
+        if (m_sel == 0 && m_end.final) { openScreen(Screen::Credits); m_prevScreen = Screen::ChapterEnd; }
+        else if (m_sel == 0) { m_transitionOut = true; m_afterFade = [this] { loadWorld(false); m_chapterTime = 0; openScreen(Screen::Playing); }; }
         else { m_transitionOut = true; m_afterFade = [this] { loadWorld(true); openScreen(Screen::Title); m_titleFade = 0; }; }
+    }
+}
+
+void Game::tickChapters(float dt) {
+    (void)dt;
+    int n = (int)chapterDefs().size();
+    int d = menuNav();
+    if (d) m_sel = (m_sel + d + n) % n;
+    if (m_in->pressed(Act::Cancel)) { openScreen(Screen::Title); return; }
+    if (m_in->pressed(Act::Confirm)) {
+        const ChapterDef& c = chapterDefs()[m_sel];
+        if (c.number > m_profile.chaptersCleared + 1) { if (m_audio) m_audio->play(Sfx::UiBack, 0.6f); return; }
+        int idx = m_sel;
+        ask(strfmt("Play %s? Gear and skills carry over; the chapter's items and scenes start fresh.", c.title.c_str()),
+            [this, idx] { m_transitionOut = true; m_afterFade = [this, idx] { startChapter(chapterDefs()[idx], true); }; }, Screen::Chapters);
     }
 }
 
@@ -632,7 +720,11 @@ void Game::tickHowTo(float dt) {
 }
 
 void Game::tickCredits(float dt) {
-    if (m_in->pressed(Act::Cancel) || (m_screenT > 1 && m_in->pressed(Act::Confirm))) openScreen(Screen::Title);
+    (void)dt;
+    if (m_in->pressed(Act::Cancel) || (m_screenT > 1 && m_in->pressed(Act::Confirm))) {
+        if (m_prevScreen == Screen::ChapterEnd) { m_transitionOut = true; m_afterFade = [this] { loadWorld(true); openScreen(Screen::Title); m_titleFade = 0; }; }
+        else openScreen(Screen::Title);
+    }
 }
 
 } // namespace sv

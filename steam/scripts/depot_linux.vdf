@@ -1,0 +1,11 @@
+"DepotBuild"
+{
+	"DepotID"  "LINUX_DEPOTID_HERE"
+	"FileMapping"
+	{
+		"LocalPath"  "linux/ShadowVeil/*"
+		"DepotPath"  "."
+		"Recursive"  "1"
+	}
+	"FileExclusion"  "steam_appid.txt"
+}

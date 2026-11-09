@@ -19,7 +19,7 @@ static MusicMode mode(const std::string& n) {
 
 static Sfx sfx(const std::string& n) {
     static const std::map<std::string, Sfx> m = {
-        {"bell", Sfx::Bell}, {"campbell", Sfx::ShrineBell}, {"gate", Sfx::Gate}, {"ignite", Sfx::Ignite}, {"perilous", Sfx::Perilous},
+        {"bell", Sfx::Catch}, {"campbell", Sfx::CampRest}, {"gate", Sfx::Gate}, {"ignite", Sfx::Ignite}, {"perilous", Sfx::Perilous},
         {"clang", Sfx::Clang}, {"deflect", Sfx::Deflect}, {"execute", Sfx::Execute}, {"swoosh", Sfx::Swoosh}, {"thud", Sfx::Thud},
         {"dash", Sfx::Dash}, {"death", Sfx::Death}, {"slash", Sfx::Slash}, {"heavy", Sfx::SlashHeavy}, {"kill", Sfx::Kill},
         {"ember", Sfx::Ember}, {"alert", Sfx::Alert}, {"confirm", Sfx::UiConfirm}, {"hit", Sfx::HitHeavy}};

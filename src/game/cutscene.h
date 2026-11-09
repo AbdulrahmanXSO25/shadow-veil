@@ -31,6 +31,11 @@ struct CutsceneView {
     float fade = 0;
     float textReveal = 0;           // characters revealed
     bool waitingForConfirm = false;
+    // a choice that changes the story: options shown under the prompt
+    std::string choicePrompt;
+    std::vector<std::string> choices;
+    std::vector<bool> choiceLocked;   // greyed out (a condition is not met)
+    int choiceSel = 0;
 };
 
 class CutscenePlayer {
@@ -45,6 +50,10 @@ public:
     // events the game layer must handle (save, chapter end, ...)
     std::vector<std::string> takeRequests() { auto r = std::move(m_requests); m_requests.clear(); return r; }
     bool autoAdvance = false;       // autoplay/testing
+    int autoChoice = 0;             // the option autoplay picks
+    // menu navigation while a choice is open (-1 up, +1 down)
+    void navChoice(int d);
+    bool choosing() const { return !m_view.choices.empty(); }
 
 private:
     bool step(World& w, const CutCommand& c, float dt, bool confirm);
