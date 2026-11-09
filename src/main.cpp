@@ -11,6 +11,10 @@
 #include <SDL3/SDL_main.h>   // provides WinMain on Windows
 #include <cstring>
 #include <map>
+#ifdef _MSC_VER
+#define popen _popen    // trailer recording (--record) pipes frames into ffmpeg
+#define pclose _pclose
+#endif
 
 using namespace sv;
 
