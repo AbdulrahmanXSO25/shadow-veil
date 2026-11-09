@@ -27,7 +27,7 @@ This document separates what is **built and tested** from what is **not yet done
 
 - **Human playtests.** Difficulty and pacing of Chapters II–VI were checked by bot and screenshots only. Expect
   tuning after real players (boss health, trial timers, chase speed).
-- **Windows on real hardware** (see above), and the **MSVC** CI job, which is written but has not run yet.
+- **Windows on real hardware** (see above). The MSVC CI job builds and passes the tests on GitHub's Windows runners (since commit 1d3b9da, after the v0.9.0 tag); the shipped .exe is the MinGW build.
 - **Steam:** the Steamworks backend (`src/platform/platform_steam.cpp`) has not been compiled against the SDK;
   App ID, depots and store art need a partner account. See `steam/README.md`.
 - **Physical controller** testing on this machine (SDL3 gamepad API, unit-tested via injected input).
